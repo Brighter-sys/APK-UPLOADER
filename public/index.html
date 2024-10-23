@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMAB TECHNOLOGIES MOBILE</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(11, 29, 101, 0.8), rgba(209, 223, 255, 0.8)), url('https://example.com/futuristic-background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin: 0.5em 0;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.9);
+        }
+
+        h2 {
+            font-size: 1.8em;
+            color: #4CAF50; /* You can also change this color if needed */
+        }
+
+        .upload-form {
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 15px;
+            background-color: rgba(11, 29, 101, 0.9);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .upload-form:hover {
+            transform: scale(1.02);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50; /* You can change this to match your design */
+            transition: width 0.3s ease-in-out;
+            border-radius: 10px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .file-item {
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            margin: 10px 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2); /* Slightly transparent for a futuristic feel */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .file-item:hover {
+            background: rgba(200, 255, 200, 0.5);
+        }
+
+        .download-btn {
+            background-color: #0B1D65; /* Main color */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .download-btn:hover {
+            background-color: #0A1A54; /* Slightly darker shade */
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>IMAB TECHNOLOGIES MOBILE APPS</h1>
+    
+    <div class="upload-form">
+        <h2>Upload APK</h2>
+        <form id="uploadForm">
+            <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
+            <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: #0B1D65; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
+        </form>
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    </div>
+
+    <div class="file-list">
+        <h2>Available APKs</h2>
+        <div id="fileList"></div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const progressBar = document.querySelector('.progress-bar');
+        const progress = document.querySelector('.progress');
+        const fileList = document.getElementById('fileList');
+
+        // Load existing files
+        async function loadFiles() {
+            const response = await fetch('/files');
+            const files = await response.json();
+            
+            fileList.innerHTML = files.map(file => `
+                <div class="file-item">
+                    <div>
+                        <strong>${file.originalName}</strong>
+                        <br>
+                        <small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                        <br>
+                        <small>Uploaded: ${new Date(file.uploadDate).toLocaleDateString()}</small>
+                    </div>
+                    <a href="/download/${file.id}" class="download-btn">Download</a>
+                </div>
+            `).join('');
+        }
+
+        // Handle file upload
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = uploadForm.querySelector('input[type="file"]');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('apk', file);
+
+            progressBar.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('admin:123456') // Change credentials
+                    }
+                });
+
+                if (!response.ok) throw new Error('Upload failed');
+                
+                fileInput.value = '';
+                await loadFiles();
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+            } finally {
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+            }
+        });
+
+        // Load files on page load
+        loadFiles();
+    </script>
+</body>
+</html>
