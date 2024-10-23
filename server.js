@@ -9,6 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
     destination: './uploads/',
@@ -34,6 +35,7 @@ const upload = multer({
 // Middleware
 app.use(express.static('public'));
 app.use(express.json());
+
 
 
 // Routes
