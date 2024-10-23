@@ -2,16 +2,10 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
-const basicAuth = require('express-basic-auth');
 const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Configure basic authentication
-const users = {
-    'admin': '123456' // Default credentials
-};
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -39,14 +33,8 @@ const upload = multer({
 app.use(express.static('public'));
 app.use(express.json());
 
-// Protect upload route with basic auth
-const uploadAuth = basicAuth({
-    users: users,
-    challenge: true
-});
-
 // Routes
-app.post('/upload', uploadAuth, upload.single('apk'), (req, res) => {
+app.post('/upload', upload.single('apk'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
