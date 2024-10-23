@@ -146,21 +146,20 @@
         <h1>IMAB TECHNOLOGIES MOBILE APPS</h1>
 
         <div class="upload-form">
-            <h2>Upload APK</h2>
-            <form id="uploadForm">
-                <input type="password" id="password" placeholder="Enter Password" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px; margin-bottom: 10px;">
-                <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
-                <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: #0B1D65; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
-            </form>
-            <div class="progress-bar">
-                <div class="progress"></div>
-            </div>
+        <h2>Upload APK</h2>
+        <form id="uploadForm">
+            <input type="password" id="password" placeholder="Enter Password" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px; margin-bottom: 10px;">
+            <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
+            <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: #0B1D65; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
+        </form>
+        <div class="progress-bar">
+            <div class="progress"></div>
         </div>
+    </div>
 
-        <div class="file-list">
-            <h2>Available APKs</h2>
-            <div id="fileList"></div>
-        </div>
+    <div class="file-list">
+        <h2>Available APKs</h2>
+        <div id="fileList"></div>
     </div>
 
     <script>
@@ -171,10 +170,11 @@
         const passwordInput = document.getElementById('password');
         const correctPassword = 'Rangelands';
 
+        // Load existing files
         async function loadFiles() {
             const response = await fetch('/files');
             const files = await response.json();
-
+            
             fileList.innerHTML = files.map(file => `
                 <div class="file-item">
                     <div>
@@ -189,6 +189,7 @@
             `).join('');
         }
 
+        // Handle file upload
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = uploadForm.querySelector('input[type="file"]');
@@ -206,26 +207,37 @@
             formData.append('apk', file);
 
             progressBar.style.display = 'block';
-            
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
 
-                if (!response.ok) throw new Error('Upload failed');
-                
-                fileInput.value = '';
-                passwordInput.value = '';
-                await loadFiles();
-            } catch (error) {
-                alert('Upload failed: ' + error.message);
-            } finally {
+            // Create a new XMLHttpRequest
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            // Update progress bar
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progress.style.width = percentComplete + '%';
+                }
+            });
+
+            // Handle response
+            xhr.onload = async () => {
+                if (xhr.status === 200) {
+                    fileInput.value = '';
+                    passwordInput.value = ''; // Clear password input
+                    await loadFiles();
+                } else {
+                    alert('Upload failed: ' + xhr.statusText);
+                }
                 progressBar.style.display = 'none';
-                progress.style.width = '0%';
-            }
+                progress.style.width = '0%'; // Reset progress bar
+            };
+
+            // Send the form data
+            xhr.send(formData);
         });
 
+        // Load files on page load
         loadFiles();
     </script>
 </body>
