@@ -9,30 +9,48 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
+        body, html {
             margin: 0;
             padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            color: #fff;
+        }
+
+        /* Video background styling */
+        .video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%; 
+            min-height: 100%;
+            z-index: -1; /* Send the video behind all content */
+            object-fit: cover; /* Ensures the video covers the entire screen */
+        }
+
+        /* Content on top of the video */
+        .content {
+            position: relative;
+            z-index: 2; /* Bring the content in front of the video */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            background: linear-gradient(135deg, rgba(11, 29, 101, 0.8), rgba(209, 223, 255, 0.8)), url('https://example.com/futuristic-background.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: #fff;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5); /* Optional semi-transparent overlay */
         }
 
         h1 {
             font-size: 2.5em;
             margin: 0.5em 0;
-            text-align: center;
-            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.9);
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); /* Text shadow for better visibility */
         }
 
         h2 {
             font-size: 1.8em;
-            color: #4CAF50; /* You can also change this color if needed */
+            color: #4CAF50;
         }
 
         .upload-form {
@@ -42,7 +60,6 @@
             border-radius: 15px;
             background-color: rgba(11, 29, 101, 0.9);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
 
@@ -63,7 +80,7 @@
         .progress {
             width: 0%;
             height: 100%;
-            background-color: #4CAF50; /* You can change this to match your design */
+            background-color: #4CAF50;
             transition: width 0.3s ease-in-out;
             border-radius: 10px;
         }
@@ -79,7 +96,7 @@
             border: 1px solid rgba(255, 255, 255, 0.6);
             margin: 10px 0;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.2); /* Slightly transparent for a futuristic feel */
+            background: rgba(255, 255, 255, 0.2);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -91,7 +108,7 @@
         }
 
         .download-btn {
-            background-color: #0B1D65; /* Main color */
+            background-color: #0B1D65;
             color: white;
             padding: 10px 20px;
             border: none;
@@ -102,17 +119,15 @@
         }
 
         .download-btn:hover {
-            background-color: #0A1A54; /* Slightly darker shade */
+            background-color: #0A1A54;
             transform: translateY(-2px);
         }
 
         @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
             h1 {
                 font-size: 2em;
             }
+
             h2 {
                 font-size: 1.5em;
             }
@@ -120,23 +135,32 @@
     </style>
 </head>
 <body>
-    <h1>IMAB TECHNOLOGIES MOBILE APPS</h1>
-    
-    <div class="upload-form">
-        <h2>Upload APK</h2>
-        <form id="uploadForm">
-            <input type="password" id="password" placeholder="Enter Password" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px; margin-bottom: 10px;">
-            <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
-            <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: #0B1D65; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
-        </form>
-        <div class="progress-bar">
-            <div class="progress"></div>
-        </div>
-    </div>
+    <!-- Video Background -->
+    <video autoplay muted loop class="video-background">
+        <source src="assets/bg.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 
-    <div class="file-list">
-        <h2>Available APKs</h2>
-        <div id="fileList"></div>
+    <!-- Content Section -->
+    <div class="content">
+        <h1>IMAB TECHNOLOGIES MOBILE APPS</h1>
+
+        <div class="upload-form">
+            <h2>Upload APK</h2>
+            <form id="uploadForm">
+                <input type="password" id="password" placeholder="Enter Password" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px; margin-bottom: 10px;">
+                <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
+                <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: #0B1D65; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
+            </form>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+        </div>
+
+        <div class="file-list">
+            <h2>Available APKs</h2>
+            <div id="fileList"></div>
+        </div>
     </div>
 
     <script>
@@ -145,13 +169,12 @@
         const progress = document.querySelector('.progress');
         const fileList = document.getElementById('fileList');
         const passwordInput = document.getElementById('password');
-        const correctPassword = 'Wolfed01';
+        const correctPassword = 'Rangelands';
 
-        // Load existing files
         async function loadFiles() {
             const response = await fetch('/files');
             const files = await response.json();
-            
+
             fileList.innerHTML = files.map(file => `
                 <div class="file-item">
                     <div>
@@ -166,7 +189,6 @@
             `).join('');
         }
 
-        // Handle file upload
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = uploadForm.querySelector('input[type="file"]');
@@ -184,37 +206,26 @@
             formData.append('apk', file);
 
             progressBar.style.display = 'block';
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
 
-            // Create a new XMLHttpRequest
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/upload', true);
-
-            // Update progress bar
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = (e.loaded / e.total) * 100;
-                    progress.style.width = percentComplete + '%';
-                }
-            });
-
-            // Handle response
-            xhr.onload = async () => {
-                if (xhr.status === 200) {
-                    fileInput.value = '';
-                    passwordInput.value = ''; // Clear password input
-                    await loadFiles();
-                } else {
-                    alert('Upload failed: ' + xhr.statusText);
-                }
+                if (!response.ok) throw new Error('Upload failed');
+                
+                fileInput.value = '';
+                passwordInput.value = '';
+                await loadFiles();
+            } catch (error) {
+                alert('Upload failed: ' + error.message);
+            } finally {
                 progressBar.style.display = 'none';
-                progress.style.width = '0%'; // Reset progress bar
-            };
-
-            // Send the form data
-            xhr.send(formData);
+                progress.style.width = '0%';
+            }
         });
 
-        // Load files on page load
         loadFiles();
     </script>
 </body>
