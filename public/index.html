@@ -184,24 +184,34 @@
             formData.append('apk', file);
 
             progressBar.style.display = 'block';
-            
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
 
-                if (!response.ok) throw new Error('Upload failed');
-                
-                fileInput.value = '';
-                passwordInput.value = ''; // Clear password input
-                await loadFiles();
-            } catch (error) {
-                alert('Upload failed: ' + error.message);
-            } finally {
+            // Create a new XMLHttpRequest
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            // Update progress bar
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progress.style.width = percentComplete + '%';
+                }
+            });
+
+            // Handle response
+            xhr.onload = async () => {
+                if (xhr.status === 200) {
+                    fileInput.value = '';
+                    passwordInput.value = ''; // Clear password input
+                    await loadFiles();
+                } else {
+                    alert('Upload failed: ' + xhr.statusText);
+                }
                 progressBar.style.display = 'none';
-                progress.style.width = '0%';
-            }
+                progress.style.width = '0%'; // Reset progress bar
+            };
+
+            // Send the form data
+            xhr.send(formData);
         });
 
         // Load files on page load
