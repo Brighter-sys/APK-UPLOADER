@@ -3,196 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IMAB TECHNOLOGIES MOBILE</title>
-    <link rel="icon" href="assets/favicon.png" type="image/png"> 
+    <title>IMAB TECHNOLOGIES</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/favicon.png">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
     <style>
+        :root {
+            --primary-color: #6200ee;
+            --accent-color: #03dac6;
+            --background: #1a1a1a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+        }
+
         body, html {
             margin: 0;
             padding: 0;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Arial', sans-serif;
-            color: #fff;
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
         }
 
-        /* Video background styling */
-        .video-background {
-            position: fixed;
-            right: 0;
-            bottom: 0;
-            min-width: 100%; 
-            min-height: 100%;
-            z-index: -1; /* Send the video behind all content */
-            object-fit: cover; /* Ensures the video covers the entire screen */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
-        /* Content on top of the video */
-        .content {
-            position: relative;
-            z-index: 2; /* Bring the content in front of the video */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            padding: 2rem;
+            border-radius: 0 0 2rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(98, 0, 238, 0.2);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             text-align: center;
-            background-color: rgba(0, 0, 0, 0.5); /* Optional semi-transparent overlay */
         }
 
-        h1 {
-            font-size: 2.5em;
-            margin: 0.5em 0;
-            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); /* Text shadow for better visibility */
+        .upload-section {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
         }
 
-        h2 {
-            font-size: 1.8em;
-            color: #4CAF50;
+        .upload-section:hover {
+            transform: translateY(-5px);
         }
 
         .upload-form {
-            border: 2px dashed rgba(255, 255, 255, 0.7);
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 15px;
-            background-color: rgba(11, 29, 101, 0.9);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
-            width: 80%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        .upload-form:hover {
-            transform: scale(1.02);
+        .input-group {
+            position: relative;
+            overflow: hidden;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(98, 0, 238, 0.3);
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            overflow: hidden;
+            height: 0.5rem;
+            margin-top: 1rem;
+            display: none;
         }
 
         .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: rgba(255, 255, 255, 0.4);
-            border-radius: 10px;
-            overflow: hidden;
-            display: none;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .progress {
-            width: 0%;
             height: 100%;
-            background-color: #4CAF50;
-            transition: width 0.3s ease-in-out;
-            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            width: 0%;
+            transition: width 0.3s ease;
         }
 
-        .file-list {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 600px;
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
         }
 
-        .file-item {
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            margin: 10px 0;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.3s;
-            width: 80%;
-            margin-left: 26px;
+        .app-card {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        .file-item:hover {
-            background: rgba(200, 255, 200, 0.5);
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(98, 0, 238, 0.2);
+        }
+
+        .app-info {
+            margin-bottom: 1rem;
+        }
+
+        .app-name {
+            font-size: 1.25rem;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .app-meta {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
         .download-btn {
-            background-color: #0B1D65;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.3s;
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .download-btn:hover {
-            background-color: #0A1A54;
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(98, 0, 238, 0.3);
         }
 
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 2em;
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
             }
 
-            h2 {
-                font-size: 1.5em;
+            .header {
+                border-radius: 0 0 1.5rem 1.5rem;
+                padding: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .apps-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Video Background -->
-    <video autoplay muted loop class="video-background">
-        <source src="assets/bg.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
-
-    <!-- Content Section -->
-    <div class="content">
-        <h1>IMAB TECHNOLOGIES MOBILE APPS</h1>
-
-        <div class="upload-form">
-        <h2>Upload APK</h2>
-        <form id="uploadForm">
-            <input type="password" id="password" placeholder="Enter Password" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px; margin-bottom: 10px;">
-            <input type="file" accept=".apk" required style="border: none; padding: 10px; width: calc(100% - 22px); border-radius: 5px;">
-            <button type="submit" style="padding: 10px; border: none; border-radius: 5px; background-color: green; color: white; cursor: pointer; transition: background 0.3s;">Upload</button>
-        </form>
-        <div class="progress-bar">
-            <div class="progress"></div>
-        </div>
+    <div class="header">
+        <h1>IMAB TECHNOLOGIES</h1>
     </div>
 
-    <div class="file-list">
-        <h2>Available APKs</h2>
-        <div id="fileList"></div>
+    <div class="container">
+        <div class="upload-section">
+            <form id="uploadForm" class="upload-form">
+                <div class="input-group">
+                    <input type="password" id="password" placeholder="Enter Access Key" required>
+                </div>
+                <div class="input-group">
+                    <input type="file" accept=".apk" required>
+                </div>
+                <button type="submit" class="upload-btn">Upload Application</button>
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+            </form>
+        </div>
+
+        <div class="apps-grid" id="fileList">
+            <!-- Apps will be dynamically inserted here -->
+        </div>
     </div>
 
     <script>
         const uploadForm = document.getElementById('uploadForm');
+        const progressContainer = document.querySelector('.progress-container');
         const progressBar = document.querySelector('.progress-bar');
-        const progress = document.querySelector('.progress');
         const fileList = document.getElementById('fileList');
         const passwordInput = document.getElementById('password');
         const correctPassword = 'Rangelands';
 
-        // Load existing files
         async function loadFiles() {
             const response = await fetch('/files');
             const files = await response.json();
             
             fileList.innerHTML = files.map(file => `
-                <div class="file-item">
-                    <div>
-                        <strong>${file.originalName}</strong>
-                        <br>
-                        <small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-                        <br>
-                        <small>Uploaded: ${new Date(file.uploadDate).toLocaleDateString()}</small>
+                <div class="app-card">
+                    <div class="app-info">
+                        <h3 class="app-name">${file.originalName}</h3>
+                        <div class="app-meta">
+                            <div>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                            <div>Released: ${new Date(file.uploadDate).toLocaleDateString()}</div>
+                        </div>
                     </div>
                     <a href="/download/${file.id}" class="download-btn">Download</a>
                 </div>
             `).join('');
         }
 
-        // Handle file upload
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const fileInput = uploadForm.querySelector('input[type="file"]');
@@ -202,45 +256,40 @@
             if (!file) return;
 
             if (password !== correctPassword) {
-                alert('Incorrect password. Please try again.');
+                alert('Invalid access key. Please try again.');
                 return;
             }
 
             const formData = new FormData();
             formData.append('apk', file);
 
-            progressBar.style.display = 'block';
+            progressContainer.style.display = 'block';
 
-            // Create a new XMLHttpRequest
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload', true);
 
-            // Update progress bar
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = (e.loaded / e.total) * 100;
-                    progress.style.width = percentComplete + '%';
+                    progressBar.style.width = percentComplete + '%';
                 }
             });
 
-            // Handle response
             xhr.onload = async () => {
                 if (xhr.status === 200) {
                     fileInput.value = '';
-                    passwordInput.value = ''; // Clear password input
+                    passwordInput.value = '';
                     await loadFiles();
                 } else {
                     alert('Upload failed: ' + xhr.statusText);
                 }
-                progressBar.style.display = 'none';
-                progress.style.width = '0%'; // Reset progress bar
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
             };
 
-            // Send the form data
             xhr.send(formData);
         });
 
-        // Load files on page load
         loadFiles();
     </script>
 </body>
