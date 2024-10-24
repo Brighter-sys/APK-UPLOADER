@@ -189,22 +189,72 @@
         }
 
         .app-screenshots {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 177.78%; /* This is for a 9:16 aspect ratio (common for mobile screenshots) */
+            overflow: hidden;
+        }
+
+        .screenshot-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
-            gap: 0.5rem;
-            margin: 1rem 0;
-            overflow-x: auto;
-            padding: 0.5rem;
-            scrollbar-width: thin;
-            scrollbar-color: var(--accent-color) transparent;
+            transition: transform 0.3s ease;
         }
 
         .app-screenshot {
-            width: 160px;
-            height: 300px;
-            border-radius: 0.5rem;
-            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* This ensures the entire image is visible */
             flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.1);
+            background-color: rgba(0, 0, 0, 0.1); /* Light background to see image boundaries */
+        }
+
+        .screenshot-nav {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            z-index: 1; /* Ensure buttons are above the images */
+        }
+
+        .screenshot-nav button {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .screenshot-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            z-index: 1; /* Ensure dots are above the images */
+        }
+
+        .screenshot-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+
+        .screenshot-dot.active {
+            background: white;
         }
 
         .app-actions {
@@ -281,6 +331,18 @@
 
             .apps-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .app-screenshots {
+                scroll-snap-type: x mandatory;
+            }
+
+            .app-screenshot {
+                scroll-snap-align: center;
+            }
+
+            .screenshot-nav {
+                display: flex;
             }
         }
 
@@ -416,33 +478,58 @@
             xhr.send(formData);
         });
 
+        function initializeScreenshotSliders() {
+            document.querySelectorAll('.app-card').forEach(card => {
+                const screenshotsContainer = card.querySelector('.app-screenshots');
+                const container = card.querySelector('.screenshot-container');
+                const prevButton = card.querySelector('.prev-screenshot');
+                const nextButton = card.querySelector('.next-screenshot');
+                const dots = card.querySelectorAll('.screenshot-dot');
+                const screenshots = card.querySelectorAll('.app-screenshot');
+                let currentIndex = 0;
+
+                // Adjust container aspect ratio based on the first image
+                const firstImage = screenshots[0];
+                if (firstImage) {
+                    firstImage.onload = function() {
+                        const aspectRatio = (this.naturalHeight / this.naturalWidth) * 100;
+                        screenshotsContainer.style.paddingBottom = `${aspectRatio}%`;
+                    }
+                }
+
+                function updateSlider() {
+                    container.style.transform = `translateX(-${currentIndex * 100}%)`;
+                    dots.forEach((dot, index) => {
+                        dot.classList.toggle('active', index === currentIndex);
+                    });
+                }
+
+                prevButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex - 1 + screenshots.length) % screenshots.length;
+                    updateSlider();
+                });
+
+                nextButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex + 1) % screenshots.length;
+                    updateSlider();
+                });
+
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateSlider();
+                    });
+                });
+            });
+        }
+
         async function loadFiles() {
             const response = await fetch('/files');
             const files = await response.json();
             
-            fileList.innerHTML = files.map(file => `
-                <div class="app-card" data-id="${file.id}">
-                    <div class="app-header">
-                        <img src="${file.icon || '/api/placeholder/72/72'}" alt="App icon" class="app-icon">
-                        <div class="app-info">
-                            <h3 class="app-name">${file.originalName}</h3>
-                            <div class="app-meta">
-                                <div>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</div>
-                                <div>Released: ${new Date(file.uploadDate).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="app-screenshots">
-                        ${(file.screenshots || ['/api/placeholder/160/300', '/api/placeholder/160/300']).map(
-                            screenshot => `<img src="${screenshot}" alt="App screenshot" class="app-screenshot">`
-                        ).join('')}
-                    </div>
-                    <div class="app-actions">
-                        <a href="/download/${file.id}" class="download-btn">Download</a>
-                        <button onclick="deleteApp('${file.id}')" class="delete-btn">Delete</button>
-                    </div>
-                </div>
-            `).join('');
+            fileList.innerHTML = files.map(file => createAppCard(file)).join('');
+            
+            initializeScreenshotSliders();
         }
 
         async function deleteApp(fileId) {
@@ -471,6 +558,44 @@
                 console.error('Error deleting app:', error);
                 alert('Failed to delete app');
             }
+        }
+
+        function createAppCard(file) {
+            const screenshots = file.screenshots || ['/api/placeholder/160/300', '/api/placeholder/160/300'];
+            return `
+                <div class="app-card" data-id="${file.id}">
+                    <div class="app-header">
+                        <img src="${file.icon || '/api/placeholder/72/72'}" alt="App icon" class="app-icon">
+                        <div class="app-info">
+                            <h3 class="app-name">${file.originalName}</h3>
+                            <div class="app-meta">
+                                <div>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                <div>Released: ${new Date(file.uploadDate).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="app-screenshots">
+                        <div class="screenshot-container">
+                            ${screenshots.map(screenshot => 
+                                `<img src="${screenshot}" alt="App screenshot" class="app-screenshot">`
+                            ).join('')}
+                        </div>
+                        <div class="screenshot-nav">
+                            <button class="prev-screenshot">&lt;</button>
+                            <button class="next-screenshot">&gt;</button>
+                        </div>
+                        <div class="screenshot-dots">
+                            ${screenshots.map((_, index) => 
+                                `<div class="screenshot-dot${index === 0 ? ' active' : ''}"></div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    <div class="app-actions">
+                        <a href="/download/${file.id}" class="download-btn">Download</a>
+                        <button onclick="deleteApp('${file.id}')" class="delete-btn">Delete</button>
+                    </div>
+                </div>
+            `;
         }
 
         loadFiles();
