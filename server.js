@@ -3,9 +3,17 @@ const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads'));
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -24,9 +32,10 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => {
         crypto.randomBytes(16, (err, buf) => {
             if (err) return cb(err);
-            cb(null, buf.toString('hex') + path.extname(file.originalname));
+            const filename = buf.toString('hex') + path.extname(file.originalname);
+            cb(null, filename);
         });
-    }
+    },
 });
 
 const upload = multer({
@@ -53,11 +62,6 @@ const upload = multer({
     { name: 'screenshot3', maxCount: 1 }
 ]);
 
-// Middleware
-app.use(express.static('public'));
-app.use(express.json());
-app.use('/uploads', express.static('uploads'));
-
 // Get list of files
 app.get('/files', (req, res) => {
     try {
@@ -79,18 +83,15 @@ app.post('/upload', (req, res) => {
             console.error('Unknown error:', err);
             return res.status(500).json({ error: 'An unknown error occurred' });
         }
-
         try {
             if (!req.files?.apk?.[0]) {
                 return res.status(400).json({ error: 'No APK file uploaded' });
             }
-
             const apkFile = req.files.apk[0];
             const iconFile = req.files.icon?.[0];
             const screenshots = Object.keys(req.files)
                 .filter(key => key.startsWith('screenshot'))
                 .map(key => `/uploads/screenshots/${req.files[key][0].filename}`);
-
             const fileInfo = {
                 id: apkFile.filename,
                 originalName: apkFile.originalname,
@@ -99,7 +100,6 @@ app.post('/upload', (req, res) => {
                 icon: iconFile ? `/uploads/icons/${iconFile.filename}` : null,
                 screenshots: screenshots
             };
-
             let fileList;
             try {
                 fileList = JSON.parse(fs.readFileSync('./uploads/files.json', 'utf8') || '[]');
@@ -107,16 +107,13 @@ app.post('/upload', (req, res) => {
                 console.error('Error reading files.json:', error);
                 fileList = [];
             }
-
             fileList.push(fileInfo);
-
             try {
                 fs.writeFileSync('./uploads/files.json', JSON.stringify(fileList));
             } catch (error) {
                 console.error('Error writing to files.json:', error);
                 return res.status(500).json({ error: 'Failed to save file information' });
             }
-
             res.json(fileInfo);
         } catch (error) {
             console.error('Unexpected error in /upload route:', error);
@@ -131,7 +128,8 @@ app.get('/download/:id', (req, res) => {
     let fileList;
     
     try {
-        fileList = JSON.parse(fs.readFileSync('./uploads/files.json', 'utf8') || '[]');
+        const fileData = fs.readFileSync('./uploads/files.json', 'utf8');
+        fileList = JSON.parse(fileData || '[]');
     } catch (error) {
         console.error('Error reading files.json:', error);
         return res.status(500).json({ error: 'Failed to read file information' });
@@ -160,7 +158,77 @@ app.get('/download/:id', (req, res) => {
     });
 });
 
-// ... rest of the routes remain the same ...
+// Delete route
+app.delete('/delete/:id', (req, res) => {
+    const fileId = req.params.id;
+    const filePath = path.join(__dirname, 'uploads', fileId);
+
+    console.log('Checking file existence:', filePath);
+    if (!fs.existsSync(filePath)) {
+        console.log('File does not exist on the server');
+        return res.status(404).json({ error: 'File not found on server' });
+    }
+
+    let fileList;
+    try {
+        fileList = JSON.parse(fs.readFileSync('./uploads/files.json', 'utf8') || '[]');
+        console.log('Current file list:', fileList.map(file => file.id));
+    } catch (error) {
+        console.error('Error reading files.json:', error);
+        return res.status(500).json({ error: 'Failed to read file information' });
+    }
+
+    const fileIndex = fileList.findIndex(file => file.id === fileId);
+
+    if (fileIndex === -1) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+
+    const fileInfo = fileList[fileIndex];
+
+    // Delete the APK file
+    try {
+        fs.unlinkSync(filePath);
+    } catch (error) {
+        console.error('Error deleting APK file:', error);
+        return res.status(500).json({ error: 'Failed to delete APK file' });
+    }
+
+    // Delete the icon if it exists
+    if (fileInfo.icon) {
+        const iconPath = path.join(__dirname, fileInfo.icon.slice(1)); // Remove leading '/'
+        try {
+            fs.unlinkSync(iconPath);
+        } catch (error) {
+            console.error('Error deleting icon file:', error);
+        }
+    }
+
+    // Delete screenshots if they exist
+    if (fileInfo.screenshots) {
+        fileInfo.screenshots.forEach(screenshot => {
+            const screenshotPath = path.join(__dirname, screenshot.slice(1)); // Remove leading '/'
+            try {
+                fs.unlinkSync(screenshotPath);
+            } catch (error) {
+                console.error('Error deleting screenshot file:', error);
+            }
+        });
+    }
+
+    // Remove the file info from the list
+    fileList.splice(fileIndex, 1);
+
+    // Update the files.json
+    try {
+        fs.writeFileSync('./uploads/files.json', JSON.stringify(fileList));
+    } catch (error) {
+        console.error('Error updating files.json:', error);
+        return res.status(500).json({ error: 'Failed to update file information' });
+    }
+
+    res.json({ message: 'File deleted successfully' });
+});
 
 // Ensure directories exist
 const dirs = ['./uploads', './uploads/screenshots', './uploads/icons'];
@@ -174,6 +242,7 @@ dirs.forEach(dir => {
     }
 });
 
+// Ensure files.json exists
 if (!fs.existsSync('./uploads/files.json')) {
     try {
         fs.writeFileSync('./uploads/files.json', '[]');
@@ -182,6 +251,22 @@ if (!fs.existsSync('./uploads/files.json')) {
     }
 }
 
+// Add this after all your other routes, but before app.listen()
+app.use((req, res, next) => {
+    console.log(`Unmatched route: ${req.method} ${req.url}`);
+    next();
+});
+
+// Start the server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+});
+
+app.get('/debug/files', (req, res) => {
+    try {
+        const fileList = JSON.parse(fs.readFileSync('./uploads/files.json', 'utf8') || '[]');
+        res.json(fileList);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to read files.json' });
+    }
 });
