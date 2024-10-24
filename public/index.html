@@ -552,7 +552,8 @@
                 if (response.ok) {
                     await loadFiles();
                 } else {
-                    alert('Failed to delete app');
+                    const errorData = await response.json();
+                    alert('Failed to delete app: ' + (errorData.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error deleting app:', error);
