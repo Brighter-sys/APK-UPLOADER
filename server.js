@@ -291,6 +291,11 @@ io.on('connection', (socket) => {
         }
         console.log('User disconnected');
     });
+
+    socket.on('updateProfilePic', (data) => {
+        // Broadcast the updated profile picture to all connected clients
+        io.emit('profilePicUpdated', data);
+    });
 });
 
 // Start the server

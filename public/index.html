@@ -1019,6 +1019,12 @@
                     this.makeMove(move.startRow, move.startCol, move.endRow, move.endCol);
                     this.renderBoard();
                 });
+
+                this.socket.on('profilePicUpdated', (data) => {
+                    const profilePic = document.getElementById(`${data.playerId}ProfilePic`);
+                    profilePic.src = data.imageData;
+                    localStorage.setItem(`${data.playerId}ProfilePic`, data.imageData);
+                });
             }
 
             initializeBoard() {
@@ -1232,8 +1238,12 @@
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(event) {
-                        profilePic.src = event.target.result;
-                        localStorage.setItem(`${playerId}ProfilePic`, event.target.result);
+                        const imageData = event.target.result;
+                        profilePic.src = imageData;
+                        localStorage.setItem(`${playerId}ProfilePic`, imageData);
+                        
+                        // Emit the profile picture update to the server
+                        game.socket.emit('updateProfilePic', { playerId, imageData });
                     }
                     reader.readAsDataURL(file);
                 }
