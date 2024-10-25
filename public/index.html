@@ -42,6 +42,48 @@
             padding: 2rem;
         }
 
+        /* Add new tab styles */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(98, 0, 238, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+
         .header {
             background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
             padding: 2rem;
@@ -356,47 +398,74 @@
     </div>
 
     <div class="container">
-        <div class="upload-section">
-            <h2>Upload New App</h2>
-            <form id="uploadForm" class="upload-form">
-                <div class="input-group">
-                    <label for="password">Access Key:</label>
-                    <input type="password" id="password" placeholder="Enter Access Key" required>
-                </div>
-                <div class="input-group">
-                    <label for="apkFile">APK File:</label>
-                    <input type="file" accept=".apk" required id="apkFile">
-                    <span class="file-type">Select .apk file</span>
-                </div>
-                <div class="input-group">
-                    <label for="appIcon">App Icon:</label>
-                    <input type="file" accept="image/*" id="appIcon">
-                    <span class="file-type">Select image for app icon</span>
-                </div>
-                <div class="input-group">
-                    <label for="screenshots">Screenshots:</label>
-                    <input type="file" accept="image/*" multiple id="screenshots">
-                    <span class="file-type">Select one or more screenshot images</span>
-                </div>
-                <div class="upload-preview" id="uploadPreview">
-                    <img id="appIconPreview" class="preview-icon" style="display: none;">
-                </div>
-                <button type="submit" class="upload-btn">Upload Application</button>
-                <div class="progress-container">
-                    <div class="progress-bar"></div>
-                </div>
-            </form>
+        <div class="tabs">
+            <button class="tab active" data-tab="my-apps">My Apps</button>
+            <button class="tab" data-tab="upload-app">Upload App</button>
         </div>
 
-        <div class="my-apps-section">
-            <h2>My Apps</h2>
+        <div id="my-apps" class="tab-content active">
             <div class="apps-grid" id="fileList">
                 <!-- Apps will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div id="upload-app" class="tab-content">
+            <div class="upload-section">
+                <form id="uploadForm" class="upload-form">
+                    <div class="input-group">
+                        <label for="password">Access Key:</label>
+                        <input type="password" id="password" placeholder="Enter Access Key" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="apkFile">APK File:</label>
+                        <input type="file" accept=".apk" required id="apkFile">
+                        <span class="file-type">Select .apk file</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="appIcon">App Icon:</label>
+                        <input type="file" accept="image/*" id="appIcon">
+                        <span class="file-type">Select image for app icon</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="screenshots">Screenshots:</label>
+                        <input type="file" accept="image/*" multiple id="screenshots">
+                        <span class="file-type">Select one or more screenshot images</span>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview">
+                        <img id="appIconPreview" class="preview-icon" style="display: none;">
+                    </div>
+                    <button type="submit" class="upload-btn">Upload Application</button>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <script>
+        // Add tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
+
+                // Add active class to clicked tab and show corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                const tabContent = document.getElementById(tabId);
+                tabContent.classList.add('active');
+                tabContent.style.display = 'block';
+            });
+        });
+
         const uploadForm = document.getElementById('uploadForm');
         const progressContainer = document.querySelector('.progress-container');
         const progressBar = document.querySelector('.progress-bar');
