@@ -4,8 +4,13 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
 const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -257,8 +262,39 @@ app.use((req, res, next) => {
     next();
 });
 
+// Checkers game logic
+let waitingPlayer = null;
+
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    if (waitingPlayer) {
+        // Start a game
+        const gameId = Math.random().toString(36).substring(7);
+        socket.join(gameId);
+        waitingPlayer.join(gameId);
+        io.to(gameId).emit('gameStart', { gameId: gameId });
+        io.to(waitingPlayer.id).emit('playerAssign', { color: 'red' });
+        io.to(socket.id).emit('playerAssign', { color: 'black' });
+        waitingPlayer = null;
+    } else {
+        waitingPlayer = socket;
+    }
+
+    socket.on('makeMove', (move) => {
+        socket.to(move.gameId).emit('opponentMove', move);
+    });
+
+    socket.on('disconnect', () => {
+        if (waitingPlayer === socket) {
+            waitingPlayer = null;
+        }
+        console.log('User disconnected');
+    });
+});
+
 // Start the server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
 
