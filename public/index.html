@@ -389,6 +389,58 @@
             }
         }
 
+        /* Add popup styles */
+        .popup {
+            position: fixed;
+            bottom: -100px; /* Start below the viewport */
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success-color);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .popup.show {
+            bottom: 2rem;
+            opacity: 1;
+        }
+
+        .popup-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .popup-message {
+            font-weight: 500;
+        }
+
+        /* Success checkmark animation */
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 4;
+            stroke: white;
+            stroke-miterlimit: 10;
+            stroke-dasharray: 340;
+            stroke-dashoffset: 340;
+            animation: draw 1s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+
+        @keyframes draw {
+            100% { stroke-dashoffset: 0; }
+        }
+
         
     </style>
 </head>
@@ -443,6 +495,14 @@
         </div>
     </div>
 
+    <div class="popup" id="uploadPopup">
+        <svg class="checkmark" viewBox="0 0 52 52">
+            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+        <span class="popup-message">Upload completed successfully!</span>
+    </div>
+
     <script>
         // Add tab functionality
         const tabs = document.querySelectorAll('.tab');
@@ -465,6 +525,20 @@
                 tabContent.style.display = 'block';
             });
         });
+
+        function showPopup(message, duration = 5000) {
+            const popup = document.getElementById('uploadPopup');
+            const popupMessage = popup.querySelector('.popup-message');
+            popupMessage.textContent = message;
+            
+            // Show popup
+            popup.classList.add('show');
+            
+            // Hide popup after duration
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, duration);
+        }
 
         const uploadForm = document.getElementById('uploadForm');
         const progressContainer = document.querySelector('.progress-container');
@@ -531,15 +605,25 @@
 
             xhr.onload = async () => {
                 if (xhr.status === 200) {
+                    // Reset form
                     apkFileInput.value = '';
                     passwordInput.value = '';
                     appIconInput.value = '';
                     screenshotsInput.value = '';
                     appIconPreview.style.display = 'none';
                     uploadPreview.style.display = 'none';
+                    
+                    // Show success popup
+                    showPopup('Upload completed successfully!');
+                    
+                    // Switch to My Apps tab
+                    const myAppsTab = document.querySelector('[data-tab="my-apps"]');
+                    myAppsTab.click();
+                    
+                    // Reload files
                     await loadFiles();
                 } else {
-                    alert('Upload failed: ' + xhr.statusText);
+                    showPopup('Upload failed: ' + xhr.statusText, 5000);
                 }
                 progressContainer.style.display = 'none';
                 progressBar.style.width = '0%';
