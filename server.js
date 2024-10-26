@@ -283,6 +283,12 @@ io.on('connection', (socket) => {
 
     socket.on('makeMove', (move) => {
         socket.to(move.gameId).emit('opponentMove', move);
+        if (move.isCapture) {
+            io.to(move.gameId).emit('pieceCapture', {
+                capturingPlayer: move.capturingPlayer,
+                capturedPlayer: move.capturedPlayer
+            });
+        }
     });
 
     socket.on('disconnect', () => {

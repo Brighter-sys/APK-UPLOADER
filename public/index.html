@@ -366,25 +366,23 @@
         /* Add popup styles */
         .popup {
             position: fixed;
-            bottom: -100px; /* Start below the viewport */
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--success-color);
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            z-index: 1000;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
             opacity: 0;
-            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1000;
         }
 
         .popup.show {
-            bottom: 2rem;
             opacity: 1;
+            visibility: visible;
         }
 
         .popup-icon {
@@ -1003,6 +1001,11 @@
                 this.gameId = null;
                 this.socket = io();
 
+                this.capturePopup = document.getElementById('capturePopup');
+                this.captureMessage = document.getElementById('captureMessage');
+                this.turnPopup = document.getElementById('turnPopup');
+                this.turnMessage = document.getElementById('turnMessage');
+
                 this.socket.on('playerAssign', (data) => {
                     this.playerColor = data.color;
                     this.playerName = data.name;
@@ -1018,6 +1021,10 @@
                 this.socket.on('opponentMove', (move) => {
                     this.makeMove(move.startRow, move.startCol, move.endRow, move.endCol);
                     this.renderBoard();
+                });
+
+                this.socket.on('pieceCapture', (data) => {
+                    this.showCapturePopup(`${data.capturingPlayer} amekukula!`);
                 });
 
                 this.socket.on('profilePicUpdated', (data) => {
@@ -1094,6 +1101,9 @@
                         this.selectedPiece = null;
                         this.renderBoard();
                         
+                        // Remove turn popup when a move is made
+                        this.turnPopup.classList.remove('show');
+                        
                         if (this.checkWinner()) {
                             this.handleGameOver();
                         }
@@ -1129,12 +1139,16 @@
 
             makeMove(startRow, startCol, endRow, endCol) {
                 const piece = this.board[startRow][startCol];
+                const isCapture = Math.abs(endRow - startRow) === 2;
                 
-                // Handle jumps
-                if (Math.abs(endCol - startCol) === 2) {
-                    const jumpedRow = startRow + (endRow - startRow)/2;
-                    const jumpedCol = startCol + (endCol - startCol)/2;
-                    this.board[jumpedRow][jumpedCol] = null;
+                if (isCapture) {
+                    const capturedRow = (startRow + endRow) / 2;
+                    const capturedCol = (startCol + endCol) / 2;
+                    this.board[capturedRow][capturedCol] = null;
+                    
+                    const capturingPlayer = piece.color === 'red' ? 'Kanyie' : 'Stacie';
+                    const capturedPlayer = piece.color === 'red' ? 'Stacie' : 'Kanyie';
+                    this.showCapturePopup(`${capturingPlayer} amekukula!`);
                 }
 
                 // Move piece
@@ -1149,6 +1163,7 @@
 
                 // Switch turns
                 this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
+                this.showTurnPopup();
             }
 
             checkWinner() {
@@ -1198,6 +1213,29 @@
                 this.initializeBoard();
                 document.getElementById('forfeitSection').style.display = 'none';
                 document.getElementById('dareSection').style.display = 'none';
+            }
+
+            showCapturePopup(message) {
+                this.captureMessage.textContent = message;
+                this.capturePopup.classList.add('show');
+                setTimeout(() => {
+                    this.capturePopup.classList.remove('show');
+                }, 2000);
+            }
+
+            showTurnPopup() {
+                const currentPlayerName = this.currentPlayer === 'red' ? 'Kanyie' : 'Stacie';
+                this.turnMessage.textContent = `${currentPlayerName}'s turn`;
+                this.turnPopup.classList.add('show');
+                
+                // Clear any existing timeout
+                if (this.turnPopupTimeout) {
+                    clearTimeout(this.turnPopupTimeout);
+                }
+                
+                this.turnPopupTimeout = setTimeout(() => {
+                    this.turnPopup.classList.remove('show');
+                }, 10000);
             }
         }
 
@@ -1267,5 +1305,12 @@
         loadProfilePictures();
 
     </script>
+    <!-- Add this just before the closing </body> tag -->
+    <div id="capturePopup" class="popup">
+        <span id="captureMessage"></span>
+    </div>
+    <div id="turnPopup" class="popup">
+        <span id="turnMessage"></span>
+    </div>
 </body>
 </html>
