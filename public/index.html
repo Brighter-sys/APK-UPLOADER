@@ -366,23 +366,25 @@
         /* Add popup styles */
         .popup {
             position: fixed;
-            top: 50%;
+            bottom: -100px; /* Start below the viewport */
             left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
+            transform: translateX(-50%);
+            background: var(--success-color);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-size: 24px;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             z-index: 1000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
         .popup.show {
+            bottom: 2rem;
             opacity: 1;
-            visibility: visible;
         }
 
         .popup-icon {
@@ -597,28 +599,8 @@
             }
         }
 
-        .profile-pic {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-bottom: 10px;
-        }
 
-        .upload-profile-btn {
-            margin-bottom: 10px;
-            padding: 5px 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .upload-profile-btn:hover {
-            background-color: #45a049;
-        }
-
+        
     </style>
 </head>
 <body>
@@ -680,17 +662,11 @@
             <div class="game-info">
                 <div class="score-board">
                     <div class="player-score" id="player1Score">
-                        <img id="kanyieProfilePic" class="profile-pic" src="/assets/avatar.png" alt="Kanyie's profile">
-                        <input type="file" id="kanyieProfileUpload" accept="image/*" style="display: none;">
-                        <button class="upload-profile-btn" onclick="document.getElementById('kanyieProfileUpload').click()">Update Profile</button>
-                        <h3>Kanyie (Red)</h3>
+                        <h3>Player 1 (Red)</h3>
                         <p>Score: <span>0</span></p>
                     </div>
                     <div class="player-score" id="player2Score">
-                        <img id="stacieProfilePic" class="profile-pic" src="/assets/avatar.png" alt="Stacie's profile">
-                        <input type="file" id="stacieProfileUpload" accept="image/*" style="display: none;">
-                        <button class="upload-profile-btn" onclick="document.getElementById('stacieProfileUpload').click()">Update Profile</button>
-                        <h3>Stacie (Black)</h3>
+                        <h3>Player 2 (Black)</h3>
                         <p>Score: <span>0</span></p>
                     </div>
                 </div>
@@ -1003,8 +979,7 @@
 
                 this.socket.on('playerAssign', (data) => {
                     this.playerColor = data.color;
-                    this.playerName = data.name;
-                    console.log(`You are playing as ${this.playerName} (${this.playerColor})`);
+                    console.log(`You are playing as ${this.playerColor}`);
                 });
 
                 this.socket.on('gameStart', (data) => {
@@ -1121,21 +1096,25 @@
 
             makeMove(startRow, startCol, endRow, endCol) {
                 const piece = this.board[startRow][startCol];
-                const isCapture = Math.abs(endRow - startRow) === 2;
                 
-                if (isCapture) {
-                    const capturedRow = (startRow + endRow) / 2;
-                    const capturedCol = (startCol + endCol) / 2;
-                    this.board[capturedRow][capturedCol] = null;
+                // Handle jumps
+                if (Math.abs(endCol - startCol) === 2) {
+                    const jumpedRow = startRow + (endRow - startRow)/2;
+                    const jumpedCol = startCol + (endCol - startCol)/2;
+                    this.board[jumpedRow][jumpedCol] = null;
                 }
 
+                // Move piece
                 this.board[endRow][endCol] = piece;
                 this.board[startRow][startCol] = null;
 
-                if ((piece.color === 'red' && endRow === 7) || (piece.color === 'black' && endRow === 0)) {
+                // King promotion
+                if ((piece.color === 'red' && endRow === 0) || 
+                    (piece.color === 'black' && endRow === 7)) {
                     piece.king = true;
                 }
 
+                // Switch turns
                 this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
             }
 
@@ -1169,7 +1148,7 @@
                 const winnerName = document.getElementById('winnerName');
                 const forfeitAmount = document.getElementById('forfeitAmount');
                 
-                winnerName.textContent = this.currentPlayer === 'red' ? 'Stacie (Black)' : 'Kanyie (Red)';
+                winnerName.textContent = this.currentPlayer === 'red' ? 'Player 2 (Black)' : 'Player 1 (Red)';
                 forfeitAmount.textContent = Math.floor(Math.random() * 20) + 5;
                 
                 document.querySelector('#player1Score span').textContent = this.scores.red;
@@ -1189,7 +1168,7 @@
             }
         }
 
-        // Initialize game
+        // Initialize game now
         let game = new CheckersGame();
 
         // Add event listeners for game controls
@@ -1216,60 +1195,7 @@
         // Initialize the game board
         game.renderBoard();
 
-        // Function to handle profile picture upload
-        function handleProfileUpload(playerId) {
-            const fileInput = document.getElementById(`${playerId}ProfileUpload`);
-            const profilePic = document.getElementById(`${playerId}ProfilePic`);
-
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        const imageData = event.target.result;
-                        profilePic.src = imageData;
-                        localStorage.setItem(`${playerId}ProfilePic`, imageData);
-                        
-                        // Emit the profile picture update to the server
-                        game.socket.emit('updateProfilePic', { playerId, imageData });
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-
-        // Load profile pictures from local storage
-        function loadProfilePictures() {
-            const players = ['kanyie', 'stacie'];
-            players.forEach(player => {
-                const storedPic = localStorage.getItem(`${player}ProfilePic`);
-                if (storedPic) {
-                    document.getElementById(`${player}ProfilePic`).src = storedPic;
-                }
-            });
-        }
-
-        // Initialize profile picture functionality
-        handleProfileUpload('kanyie');
-        handleProfileUpload('stacie');
-        loadProfilePictures();
-
-        // Add this CSS for highlighting the current player
-        const style = document.createElement('style');
-        style.textContent = `
-            .current-player {
-                box-shadow: 0 0 10px 5px gold;
-            }
-        `;
-        document.head.appendChild(style);
 
     </script>
-    <!-- Add this just before the closing </body> tag -->
-    <div id="capturePopup" class="popup">
-        <span id="captureMessage"></span>
-    </div>
-    <div id="turnPopup" class="popup">
-        <span id="turnMessage"></span>
-    </div>
 </body>
 </html>
