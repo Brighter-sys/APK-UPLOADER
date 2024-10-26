@@ -680,6 +680,71 @@
             z-index: 1000;
         }
 
+        /* Add this inside the game-info div for the control menu */
+        .control-menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .score-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+        }
+
+        /* Add this to your existing CSS */
+        .game-board {
+            perspective: 1000px; /* For 3D effect */
+        }
+
+        .square {
+            transition: transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
+        }
+
+        .square:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); /* Glowing effect on hover */
+        }
+
+        .piece {
+            transition: transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
+        }
+
+        .piece.active {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 1); /* Glowing effect for active pieces */
+        }
+
+        .piece.captured {
+            animation: particleBurst 0.5s forwards; /* Particle burst effect */
+        }
+
+        @keyframes particleBurst {
+            /* Define your particle burst animation here */
+        }
+
+        /* Control menu styles */
+        .control-menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .score-counter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -760,6 +825,16 @@
                         <h2>Congratulations!</h2>
                         <p>What a great game! Abdul Misses You</p>
                     </div>
+                </div>
+                <!-- Add this inside the game-info div for the control menu -->
+                <div class="control-menu">
+                    <button id="undoMoveBtn">Undo</button>
+                    <button id="restartGameBtn">Restart</button>
+                    <button id="settingsBtn">Settings</button>
+                </div>
+                <div class="score-counter">
+                    <div class="score" id="redScore">0</div>
+                    <div class="score" id="blackScore">0</div>
                 </div>
             </div>
         </div>
@@ -1175,6 +1250,7 @@
                     const jumpedRow = startRow + (endRow - startRow) / 2;
                     const jumpedCol = startCol + (endCol - startCol) / 2;
                     this.board[jumpedRow][jumpedCol] = null; // Remove the jumped piece
+                    showMoveNotification(`Captured a piece!`);
                 }
 
                 // Move piece
@@ -1190,6 +1266,7 @@
 
                 // Switch turns
                 this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
+                updateScore(); // Update score after each move
             }
 
             checkWinner() {
@@ -1354,6 +1431,83 @@
                 square.classList.add('highlight');
             });
         }
+
+        // Add this function to show move notifications
+        function showMoveNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'move-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Function to update scores
+        function updateScore() {
+            document.getElementById('redScore').textContent = this.scores.red;
+            document.getElementById('blackScore').textContent = this.scores.black;
+        }
+
+        // Add event listeners for control buttons
+        document.getElementById('undoMoveBtn').addEventListener('click', () => {
+            // Implement undo functionality
+        });
+
+        document.getElementById('restartGameBtn').addEventListener('click', () => {
+            game.resetGame();
+        });
+
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            // Implement settings functionality
+        });
+
+        // Function to update the score display
+        function updateScore(redScore, blackScore) {
+            document.getElementById('redScore').textContent = redScore;
+            document.getElementById('blackScore').textContent = blackScore;
+        }
+
+        // Function to show move notifications
+        function showMoveNotification(message) {
+            const notification = document.getElementById('moveNotification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function renderBoard(board) {
+            const checkerBoard = document.getElementById('checkerBoard');
+            checkerBoard.innerHTML = ''; // Clear the board
+
+            board.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    const square = document.createElement('div');
+                    square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'light' : 'dark'}`;
+                    if (cell) {
+                        const piece = document.createElement('div');
+                        piece.className = `piece ${cell.color}`;
+                        square.appendChild(piece);
+                    }
+                    checkerBoard.appendChild(square);
+                });
+            });
+        }
+
+        socket.on('gameStateUpdate', (game) => {
+            // Update the board and scores based on the game state
+            renderBoard(game.board);
+            updateScore(game.scores.red, game.scores.black);
+        });
+
+        // Handle game over
+        socket.on('gameOver', (data) => {
+            document.getElementById('winnerName').textContent = data.message;
+            document.getElementById('forfeitSection').style.display = 'block';
+        });
 
     </script>
 </body>
