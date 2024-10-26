@@ -291,6 +291,25 @@ io.on('connection', (socket) => {
         }
         console.log('User disconnected');
     });
+
+    socket.on('startGame', () => {
+        if (waitingPlayer) {
+            const gameId = Math.random().toString(36).substring(7);
+            socket.join(gameId);
+            waitingPlayer.join(gameId);
+            
+            // Randomly assign who starts first
+            const firstPlayer = Math.random() < 0.5 ? waitingPlayer : socket;
+            const firstPlayerColor = firstPlayer === waitingPlayer ? 'red' : 'black';
+
+            io.to(gameId).emit('gameStart', { gameId: gameId, firstPlayerColor });
+            io.to(waitingPlayer.id).emit('playerAssign', { color: 'red' });
+            io.to(socket.id).emit('playerAssign', { color: 'black' });
+            waitingPlayer = null;
+        } else {
+            waitingPlayer = socket;
+        }
+    });
 });
 
 // Start the server

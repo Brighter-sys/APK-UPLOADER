@@ -599,8 +599,20 @@
             }
         }
 
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            z-index: 1000;
+            display: none; /* Initially hidden */
+        }
 
-        
     </style>
 </head>
 <body>
@@ -660,6 +672,8 @@
         <div class="game-container">
             <div class="game-board" id="checkerBoard"></div>
             <div class="game-info">
+                <button class="game-button" id="startGameBtn">Start Game</button>
+                <div id="gameMessage" style="display: none;"></div>
                 <div class="score-board">
                     <div class="player-score" id="player1Score">
                         <h3>Player 1 (Red)</h3>
@@ -1195,6 +1209,27 @@
         // Initialize the game board
         game.renderBoard();
 
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            socket.emit('startGame');
+        });
+
+        socket.on('gameStart', (data) => {
+            gameId = data.gameId;
+            const firstPlayerMessage = data.firstPlayerColor === 'red' ? 'Player 1 (Red) will start the game!' : 'Player 2 (Black) will start the game!';
+            
+            // Show the pop-up
+            const popup = document.getElementById('startGamePopup');
+            popup.textContent = firstPlayerMessage;
+            popup.style.display = 'block';
+
+            // Hide the pop-up after 5 seconds
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 5000);
+
+            // Initialize the game board
+            initializeBoard(); // Call your existing function to set up the board
+        });
 
     </script>
 </body>
