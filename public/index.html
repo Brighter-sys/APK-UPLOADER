@@ -638,6 +638,48 @@
             100% { transform: translate(-50%, 0); }
         }
 
+        /* Add this to your CSS */
+        .piece.king {
+            background-color: gold; /* Change color or add a crown icon */
+        }
+
+        /* Add this to your CSS */
+        #checkerBoard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 80vmin;
+            height: 80vmin;
+            border: 5px solid rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
+        }
+
+        .square {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: background 0.3s;
+        }
+
+        .square.light {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .square.dark {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 20px;
+            z-index: 1000;
+        }
+
     </style>
 </head>
 <body>
@@ -736,6 +778,11 @@
     <!-- Add this script tag before your existing script -->
     <script src="/socket.io/socket.io.js"></script>
 
+    <!-- Include Three.js in your HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
     <script>
         // Add tab functionality
         const tabs = document.querySelectorAll('.tab');
@@ -760,18 +807,15 @@
         });
 
         // Add popup functionality
-        function showPopup(message, duration = 3000) {
-            const popup = document.getElementById('uploadPopup');
-            const popupMessage = popup.querySelector('.popup-message');
-            popupMessage.textContent = message;
-            
-            // Show popup
-            popup.classList.add('show');
-            
-            // Hide popup after duration
+        function showPopup(message) {
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.textContent = message;
+            document.body.appendChild(popup);
+
             setTimeout(() => {
-                popup.classList.remove('show');
-            }, duration);
+                popup.remove();
+            }, 3000);
         }
 
         const uploadForm = document.getElementById('uploadForm');
@@ -1053,11 +1097,7 @@
                         if (this.board[row][col]) {
                             const piece = document.createElement('div');
                             piece.className = `piece ${this.board[row][col].color}`;
-                            if (this.board[row][col].king) piece.classList.add('king');
-                            if (this.selectedPiece && this.selectedPiece.row === row && this.selectedPiece.col === col) {
-                                piece.classList.add('selected');
-                            }
-                            
+                            if (this.board[row][col].king) piece.classList.add('king'); // Highlight king pieces
                             piece.addEventListener('click', () => this.handlePieceClick(row, col));
                             square.appendChild(piece);
                         }
@@ -1107,7 +1147,6 @@
                 const rowDiff = endRow - startRow;
                 const colDiff = Math.abs(endCol - startCol);
 
-                // Basic movement rules
                 if (!piece || colDiff === 0) return false;
 
                 // Regular pieces can only move forward
@@ -1116,10 +1155,10 @@
                     if (piece.color === 'black' && rowDiff <= 0) return false;
                 }
 
-                // Jump move
+                // Check for jump move
                 if (colDiff === 2 && Math.abs(rowDiff) === 2) {
-                    const jumpedRow = startRow + rowDiff/2;
-                    const jumpedCol = startCol + (endCol - startCol)/2;
+                    const jumpedRow = startRow + rowDiff / 2;
+                    const jumpedCol = startCol + (endCol - startCol) / 2;
                     const jumpedPiece = this.board[jumpedRow][jumpedCol];
                     return jumpedPiece && jumpedPiece.color !== piece.color;
                 }
@@ -1130,12 +1169,12 @@
 
             makeMove(startRow, startCol, endRow, endCol) {
                 const piece = this.board[startRow][startCol];
-                
+
                 // Handle jumps
                 if (Math.abs(endCol - startCol) === 2) {
-                    const jumpedRow = startRow + (endRow - startRow)/2;
-                    const jumpedCol = startCol + (endCol - startCol)/2;
-                    this.board[jumpedRow][jumpedCol] = null;
+                    const jumpedRow = startRow + (endRow - startRow) / 2;
+                    const jumpedCol = startCol + (endCol - startCol) / 2;
+                    this.board[jumpedRow][jumpedCol] = null; // Remove the jumped piece
                 }
 
                 // Move piece
@@ -1146,6 +1185,7 @@
                 if ((piece.color === 'red' && endRow === 0) || 
                     (piece.color === 'black' && endRow === 7)) {
                     piece.king = true;
+                    piece.element.classList.add('king'); // Highlight the piece visually
                 }
 
                 // Switch turns
@@ -1165,15 +1205,39 @@
                     }
                 }
 
+                // Check for no pieces
                 if (redPieces === 0) {
-                    this.scores.black++;
                     return 'black';
                 } else if (blackPieces === 0) {
-                    this.scores.red++;
+                    return 'red';
+                }
+
+                // Check for no legal moves
+                if (!this.hasLegalMoves('red')) {
+                    return 'black';
+                } else if (!this.hasLegalMoves('black')) {
                     return 'red';
                 }
 
                 return null;
+            }
+
+            hasLegalMoves(color) {
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (this.board[row][col] && this.board[row][col].color === color) {
+                            // Check for possible moves
+                            for (let r = -1; r <= 1; r++) {
+                                for (let c = -1; c <= 1; c++) {
+                                    if (this.isValidMove(row, col, row + r, col + c)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
             }
 
             handleGameOver() {
@@ -1255,6 +1319,41 @@
             // Initialize the game board
             game.initializeBoard(); // Ensure you call the correct method to set up the board
         });
+
+        function playSound(soundId) {
+            const sound = document.getElementById(soundId);
+            sound.currentTime = 0; // Reset sound to start
+            sound.play();
+        }
+
+        function showParticles() {
+            particlesJS("particles-js", {
+                particles: {
+                    number: { value: 100 },
+                    size: { value: 3 },
+                    move: { speed: 1 },
+                    line_linked: { enable: true },
+                },
+                interactivity: {
+                    events: {
+                        onhover: { enable: true, mode: "repulse" },
+                    },
+                },
+            });
+        }
+
+        document.getElementById('pieceSkinSelector').addEventListener('change', (event) => {
+            const selectedSkin = event.target.value;
+            // Apply the selected skin to the pieces
+            applyPieceSkin(selectedSkin);
+        });
+
+        function highlightValidMoves(validMoves) {
+            validMoves.forEach(move => {
+                const square = document.querySelector(`.square[data-row="${move.row}"][data-col="${move.col}"]`);
+                square.classList.add('highlight');
+            });
+        }
 
     </script>
 </body>
