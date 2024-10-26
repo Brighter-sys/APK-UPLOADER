@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware comment
 app.use(cors());
-app.use(express.static('public')); // Assuming your static files are in the 'public' directory
+app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
@@ -265,42 +265,6 @@ app.use((req, res, next) => {
 // Checkers game logic
 let waitingPlayer = null;
 
-// Store game states
-const games = {};
-
-// Function to initialize the board
-function initialBoardState() {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
-    // Place pieces for red and black
-    for (let row = 0; row < 3; row++) {
-        for (let col = (row % 2 === 0 ? 1 : 0); col < 8; col += 2) {
-            board[row][col] = { color: 'black', king: false };
-        }
-    }
-    for (let row = 5; row < 8; row++) {
-        for (let col = (row % 2 === 0 ? 1 : 0); col < 8; col += 2) {
-            board[row][col] = { color: 'red', king: false };
-        }
-    }
-    return board;
-}
-
-// Store previous game states for undo functionality
-const previousGameStates = {};
-
-// Check for game over
-function checkGameOver(game) {
-    const redPieces = game.board.flat().filter(piece => piece && piece.color === 'red').length;
-    const blackPieces = game.board.flat().filter(piece => piece && piece.color === 'black').length;
-
-    if (redPieces === 0) {
-        return 'Black wins!';
-    } else if (blackPieces === 0) {
-        return 'Red wins!';
-    }
-    return null; // Game is still ongoing
-}
-
 io.on('connection', (socket) => {
     console.log('A user connected');
 
@@ -328,83 +292,23 @@ io.on('connection', (socket) => {
         console.log('User disconnected');
     });
 
-    socket.on('startGame', (gameId) => {
-        games[gameId] = {
-            players: [socket.id],
-            board: initialBoardState(), // Function to initialize the board
-            currentPlayer: 'red',
-            scores: { red: 0, black: 0 },
-        };
-    });
+    socket.on('startGame', () => {
+        if (waitingPlayer) {
+            const gameId = Math.random().toString(36).substring(7);
+            socket.join(gameId);
+            waitingPlayer.join(gameId);
+            
+            // Randomly assign who starts first
+            const firstPlayer = Math.random() < 0.5 ? waitingPlayer : socket;
+            const firstPlayerColor = firstPlayer === waitingPlayer ? 'red' : 'black';
 
-    socket.on('makeMove', (gameId, move) => {
-        const game = games[gameId];
-        if (game) {
-            // Store the current game state for undo functionality
-            previousGameStates[gameId] = JSON.parse(JSON.stringify(game));
-
-            // Validate the move
-            const isValidMove = validateMove(game, move);
-            if (!isValidMove) {
-                socket.emit('invalidMove', { message: 'Invalid move!' });
-                return;
-            }
-
-            // Apply the move
-            const { startRow, startCol, endRow, endCol } = move;
-            const piece = game.board[startRow][startCol];
-
-            // Handle jumps
-            if (Math.abs(endCol - startCol) === 2) {
-                const jumpedRow = startRow + (endRow - startRow) / 2;
-                const jumpedCol = startCol + (endCol - startCol) / 2;
-                game.board[jumpedRow][jumpedCol] = null; // Remove the jumped piece
-            }
-
-            // Move the piece
-            game.board[endRow][endCol] = piece;
-            game.board[startRow][startCol] = null;
-
-            // King promotion
-            if ((piece.color === 'red' && endRow === 0) || 
-                (piece.color === 'black' && endRow === 7)) {
-                piece.king = true; // Promote to king
-                piece.element.classList.add('king'); // Highlight the piece visually
-            }
-
-            // Switch turns
-            game.currentPlayer = game.currentPlayer === 'red' ? 'black' : 'red';
-
-            // Check for game over
-            const gameOverMessage = checkGameOver(game);
-            if (gameOverMessage) {
-                io.to(gameId).emit('gameOver', { message: gameOverMessage });
-                return; // Stop further processing
-            }
-
-            // Emit the updated state to all players
-            io.to(gameId).emit('gameStateUpdate', game);
-        }
-    });
-
-    // Undo functionality
-    socket.on('undoMove', (gameId) => {
-        const game = games[gameId];
-        if (game && previousGameStates[gameId]) {
-            // Restore the previous game state
-            games[gameId] = previousGameStates[gameId];
-            delete previousGameStates[gameId]; // Clear the previous state after undo
-            io.to(gameId).emit('gameStateUpdate', games[gameId]); // Notify all players
+            io.to(gameId).emit('gameStart', { gameId: gameId, firstPlayerColor });
+            io.to(waitingPlayer.id).emit('playerAssign', { color: 'red' });
+            io.to(socket.id).emit('playerAssign', { color: 'black' });
+            waitingPlayer = null;
         } else {
-            socket.emit('error', { message: 'No move to undo!' });
+            waitingPlayer = socket;
         }
-    });
-
-    // Settings functionality (placeholder for future implementation)
-    socket.on('updateSettings', (gameId, settings) => {
-        // Implement settings logic here
-        // For example, you could change game rules or player preferences
-        console.log(`Settings updated for game ${gameId}:`, settings);
     });
 });
 

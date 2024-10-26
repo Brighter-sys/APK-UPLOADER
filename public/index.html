@@ -611,138 +611,6 @@
             font-size: 24px;
             z-index: 1000;
             display: none; /* Initially hidden */
-            animation: pop 0.5s ease-in-out;
-        }
-
-        @keyframes pop {
-            0% { transform: translate(-50%, -50%) scale(0); }
-            50% { transform: translate(-50%, -50%) scale(1.1); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-        }
-
-        .balloon {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50px;
-            height: 80px;
-            background-color: #ff4d4d;
-            border-radius: 50px 50px 0 0;
-            animation: float 2s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0% { transform: translate(-50%, 0); }
-            50% { transform: translate(-50%, -20px); }
-            100% { transform: translate(-50%, 0); }
-        }
-
-        /* Add this to your CSS */
-        .piece.king {
-            background-color: gold; /* Change color or add a crown icon */
-        }
-
-        /* Add this to your CSS */
-        #checkerBoard {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            width: 80vmin;
-            height: 80vmin;
-            border: 5px solid rgba(255, 255, 255, 0.5);
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
-        }
-
-        .square {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: background 0.3s;
-        }
-
-        .square.light {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .square.dark {
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .hud {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            font-size: 20px;
-            z-index: 1000;
-        }
-
-        /* Add this inside the game-info div for the control menu */
-        .control-menu {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .score-counter {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
-            color: white;
-        }
-
-        /* Add this to your existing CSS */
-        .game-board {
-            perspective: 1000px; /* For 3D effect */
-        }
-
-        .square {
-            transition: transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
-        }
-
-        .square:hover {
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); /* Glowing effect on hover */
-        }
-
-        .piece {
-            transition: transform 0.3s, box-shadow 0.3s; /* Smooth transitions */
-        }
-
-        .piece.active {
-            box-shadow: 0 0 20px rgba(0, 255, 0, 1); /* Glowing effect for active pieces */
-        }
-
-        .piece.captured {
-            animation: particleBurst 0.5s forwards; /* Particle burst effect */
-        }
-
-        @keyframes particleBurst {
-            /* Define your particle burst animation here */
-        }
-
-        /* Control menu styles */
-        .control-menu {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .score-counter {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
-            color: white;
         }
 
     </style>
@@ -821,20 +689,15 @@
                 <div class="forfeit-section" id="forfeitSection" style="display: none;">
                     <h3>Game Over!</h3>
                     <p>Winner: <span id="winnerName"></span></p>
-                    <div class="congratulations-message" id="congratulationsMessage" style="display: none;">
-                        <h2>Congratulations!</h2>
-                        <p>What a great game! Abdul Misses You</p>
+                    <div class="forfeit-amount">
+                        Pay: £<span id="forfeitAmount">0</span>
                     </div>
-                </div>
-                <!-- Add this inside the game-info div for the control menu -->
-                <div class="control-menu">
-                    <button id="undoMoveBtn">Undo</button>
-                    <button id="restartGameBtn">Restart</button>
-                    <button id="settingsBtn">Settings</button>
-                </div>
-                <div class="score-counter">
-                    <div class="score" id="redScore">0</div>
-                    <div class="score" id="blackScore">0</div>
+                    <button class="game-button" id="rejectPaymentBtn">I don't want to pay</button>
+                    <div id="dareSection" style="display: none;">
+                        <p>Enter a dare instead:</p>
+                        <input type="text" class="dare-input" id="dareInput" placeholder="Enter your dare...">
+                        <button class="game-button" id="submitDareBtn">Set Dare</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -852,11 +715,6 @@
 
     <!-- Add this script tag before your existing script -->
     <script src="/socket.io/socket.io.js"></script>
-
-    <!-- Include Three.js in your HTML -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 
     <script>
         // Add tab functionality
@@ -882,15 +740,18 @@
         });
 
         // Add popup functionality
-        function showPopup(message) {
-            const popup = document.createElement('div');
-            popup.className = 'popup';
-            popup.textContent = message;
-            document.body.appendChild(popup);
-
+        function showPopup(message, duration = 3000) {
+            const popup = document.getElementById('uploadPopup');
+            const popupMessage = popup.querySelector('.popup-message');
+            popupMessage.textContent = message;
+            
+            // Show popup
+            popup.classList.add('show');
+            
+            // Hide popup after duration
             setTimeout(() => {
-                popup.remove();
-            }, 3000);
+                popup.classList.remove('show');
+            }, duration);
         }
 
         const uploadForm = document.getElementById('uploadForm');
@@ -1172,7 +1033,11 @@
                         if (this.board[row][col]) {
                             const piece = document.createElement('div');
                             piece.className = `piece ${this.board[row][col].color}`;
-                            if (this.board[row][col].king) piece.classList.add('king'); // Highlight king pieces
+                            if (this.board[row][col].king) piece.classList.add('king');
+                            if (this.selectedPiece && this.selectedPiece.row === row && this.selectedPiece.col === col) {
+                                piece.classList.add('selected');
+                            }
+                            
                             piece.addEventListener('click', () => this.handlePieceClick(row, col));
                             square.appendChild(piece);
                         }
@@ -1222,6 +1087,7 @@
                 const rowDiff = endRow - startRow;
                 const colDiff = Math.abs(endCol - startCol);
 
+                // Basic movement rules
                 if (!piece || colDiff === 0) return false;
 
                 // Regular pieces can only move forward
@@ -1230,10 +1096,10 @@
                     if (piece.color === 'black' && rowDiff <= 0) return false;
                 }
 
-                // Check for jump move
+                // Jump move
                 if (colDiff === 2 && Math.abs(rowDiff) === 2) {
-                    const jumpedRow = startRow + rowDiff / 2;
-                    const jumpedCol = startCol + (endCol - startCol) / 2;
+                    const jumpedRow = startRow + rowDiff/2;
+                    const jumpedCol = startCol + (endCol - startCol)/2;
                     const jumpedPiece = this.board[jumpedRow][jumpedCol];
                     return jumpedPiece && jumpedPiece.color !== piece.color;
                 }
@@ -1244,13 +1110,12 @@
 
             makeMove(startRow, startCol, endRow, endCol) {
                 const piece = this.board[startRow][startCol];
-
+                
                 // Handle jumps
                 if (Math.abs(endCol - startCol) === 2) {
-                    const jumpedRow = startRow + (endRow - startRow) / 2;
-                    const jumpedCol = startCol + (endCol - startCol) / 2;
-                    this.board[jumpedRow][jumpedCol] = null; // Remove the jumped piece
-                    showMoveNotification(`Captured a piece!`);
+                    const jumpedRow = startRow + (endRow - startRow)/2;
+                    const jumpedCol = startCol + (endCol - startCol)/2;
+                    this.board[jumpedRow][jumpedCol] = null;
                 }
 
                 // Move piece
@@ -1261,12 +1126,10 @@
                 if ((piece.color === 'red' && endRow === 0) || 
                     (piece.color === 'black' && endRow === 7)) {
                     piece.king = true;
-                    piece.element.classList.add('king'); // Highlight the piece visually
                 }
 
                 // Switch turns
                 this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
-                updateScore(); // Update score after each move
             }
 
             checkWinner() {
@@ -1282,51 +1145,29 @@
                     }
                 }
 
-                // Check for no pieces
                 if (redPieces === 0) {
+                    this.scores.black++;
                     return 'black';
                 } else if (blackPieces === 0) {
-                    return 'red';
-                }
-
-                // Check for no legal moves
-                if (!this.hasLegalMoves('red')) {
-                    return 'black';
-                } else if (!this.hasLegalMoves('black')) {
+                    this.scores.red++;
                     return 'red';
                 }
 
                 return null;
             }
 
-            hasLegalMoves(color) {
-                for (let row = 0; row < 8; row++) {
-                    for (let col = 0; col < 8; col++) {
-                        if (this.board[row][col] && this.board[row][col].color === color) {
-                            // Check for possible moves
-                            for (let r = -1; r <= 1; r++) {
-                                for (let c = -1; c <= 1; c++) {
-                                    if (this.isValidMove(row, col, row + r, col + c)) {
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
-
             handleGameOver() {
                 this.gameOver = true;
                 const forfeitSection = document.getElementById('forfeitSection');
                 const winnerName = document.getElementById('winnerName');
-                const congratulationsMessage = document.getElementById('congratulationsMessage');
-
-                winnerName.textContent = this.currentPlayer === 'red' ? 'Player 2 (Black)' : 'Player 1 (Red)';
+                const forfeitAmount = document.getElementById('forfeitAmount');
                 
-                // Show the congratulatory message
-                congratulationsMessage.style.display = 'block';
+                winnerName.textContent = this.currentPlayer === 'red' ? 'Player 2 (Black)' : 'Player 1 (Red)';
+                forfeitAmount.textContent = Math.floor(Math.random() * 20) + 5;
+                
+                document.querySelector('#player1Score span').textContent = this.scores.red;
+                document.querySelector('#player2Score span').textContent = this.scores.black;
+                
                 forfeitSection.style.display = 'block';
             }
 
@@ -1378,135 +1219,16 @@
             
             // Show the pop-up
             const popup = document.getElementById('startGamePopup');
-            const messageSpan = document.getElementById('startGameMessage');
-            messageSpan.textContent = firstPlayerMessage;
+            popup.textContent = firstPlayerMessage;
             popup.style.display = 'block';
-
-            // Create a balloon element
-            const balloon = document.createElement('div');
-            balloon.className = 'balloon';
-            popup.appendChild(balloon);
 
             // Hide the pop-up after 5 seconds
             setTimeout(() => {
                 popup.style.display = 'none';
-                popup.removeChild(balloon); // Remove the balloon after hiding the popup
             }, 5000);
 
             // Initialize the game board
-            game.initializeBoard(); // Ensure you call the correct method to set up the board
-        });
-
-        function playSound(soundId) {
-            const sound = document.getElementById(soundId);
-            sound.currentTime = 0; // Reset sound to start
-            sound.play();
-        }
-
-        function showParticles() {
-            particlesJS("particles-js", {
-                particles: {
-                    number: { value: 100 },
-                    size: { value: 3 },
-                    move: { speed: 1 },
-                    line_linked: { enable: true },
-                },
-                interactivity: {
-                    events: {
-                        onhover: { enable: true, mode: "repulse" },
-                    },
-                },
-            });
-        }
-
-        document.getElementById('pieceSkinSelector').addEventListener('change', (event) => {
-            const selectedSkin = event.target.value;
-            // Apply the selected skin to the pieces
-            applyPieceSkin(selectedSkin);
-        });
-
-        function highlightValidMoves(validMoves) {
-            validMoves.forEach(move => {
-                const square = document.querySelector(`.square[data-row="${move.row}"][data-col="${move.col}"]`);
-                square.classList.add('highlight');
-            });
-        }
-
-        // Add this function to show move notifications
-        function showMoveNotification(message) {
-            const notification = document.createElement('div');
-            notification.className = 'move-notification';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Function to update scores
-        function updateScore() {
-            document.getElementById('redScore').textContent = this.scores.red;
-            document.getElementById('blackScore').textContent = this.scores.black;
-        }
-
-        // Add event listeners for control buttons
-        document.getElementById('undoMoveBtn').addEventListener('click', () => {
-            // Implement undo functionality
-        });
-
-        document.getElementById('restartGameBtn').addEventListener('click', () => {
-            game.resetGame();
-        });
-
-        document.getElementById('settingsBtn').addEventListener('click', () => {
-            // Implement settings functionality
-        });
-
-        // Function to update the score display
-        function updateScore(redScore, blackScore) {
-            document.getElementById('redScore').textContent = redScore;
-            document.getElementById('blackScore').textContent = blackScore;
-        }
-
-        // Function to show move notifications
-        function showMoveNotification(message) {
-            const notification = document.getElementById('moveNotification');
-            notification.textContent = message;
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000);
-        }
-
-        function renderBoard(board) {
-            const checkerBoard = document.getElementById('checkerBoard');
-            checkerBoard.innerHTML = ''; // Clear the board
-
-            board.forEach((row, rowIndex) => {
-                row.forEach((cell, colIndex) => {
-                    const square = document.createElement('div');
-                    square.className = `square ${(rowIndex + colIndex) % 2 === 0 ? 'light' : 'dark'}`;
-                    if (cell) {
-                        const piece = document.createElement('div');
-                        piece.className = `piece ${cell.color}`;
-                        square.appendChild(piece);
-                    }
-                    checkerBoard.appendChild(square);
-                });
-            });
-        }
-
-        socket.on('gameStateUpdate', (game) => {
-            // Update the board and scores based on the game state
-            renderBoard(game.board);
-            updateScore(game.scores.red, game.scores.black);
-        });
-
-        // Handle game over
-        socket.on('gameOver', (data) => {
-            document.getElementById('winnerName').textContent = data.message;
-            document.getElementById('forfeitSection').style.display = 'block';
+            initializeBoard(); // Call your existing function to set up the board
         });
 
     </script>
