@@ -611,6 +611,31 @@
             font-size: 24px;
             z-index: 1000;
             display: none; /* Initially hidden */
+            animation: pop 0.5s ease-in-out;
+        }
+
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .balloon {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 80px;
+            background-color: #ff4d4d;
+            border-radius: 50px 50px 0 0;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, -20px); }
+            100% { transform: translate(-50%, 0); }
         }
 
     </style>
@@ -689,14 +714,9 @@
                 <div class="forfeit-section" id="forfeitSection" style="display: none;">
                     <h3>Game Over!</h3>
                     <p>Winner: <span id="winnerName"></span></p>
-                    <div class="forfeit-amount">
-                        Pay: £<span id="forfeitAmount">0</span>
-                    </div>
-                    <button class="game-button" id="rejectPaymentBtn">I don't want to pay</button>
-                    <div id="dareSection" style="display: none;">
-                        <p>Enter a dare instead:</p>
-                        <input type="text" class="dare-input" id="dareInput" placeholder="Enter your dare...">
-                        <button class="game-button" id="submitDareBtn">Set Dare</button>
+                    <div class="congratulations-message" id="congratulationsMessage" style="display: none;">
+                        <h2>Congratulations!</h2>
+                        <p>What a great game! Abdul Misses You</p>
                     </div>
                 </div>
             </div>
@@ -1160,14 +1180,12 @@
                 this.gameOver = true;
                 const forfeitSection = document.getElementById('forfeitSection');
                 const winnerName = document.getElementById('winnerName');
-                const forfeitAmount = document.getElementById('forfeitAmount');
-                
+                const congratulationsMessage = document.getElementById('congratulationsMessage');
+
                 winnerName.textContent = this.currentPlayer === 'red' ? 'Player 2 (Black)' : 'Player 1 (Red)';
-                forfeitAmount.textContent = Math.floor(Math.random() * 20) + 5;
                 
-                document.querySelector('#player1Score span').textContent = this.scores.red;
-                document.querySelector('#player2Score span').textContent = this.scores.black;
-                
+                // Show the congratulatory message
+                congratulationsMessage.style.display = 'block';
                 forfeitSection.style.display = 'block';
             }
 
@@ -1219,16 +1237,23 @@
             
             // Show the pop-up
             const popup = document.getElementById('startGamePopup');
-            popup.textContent = firstPlayerMessage;
+            const messageSpan = document.getElementById('startGameMessage');
+            messageSpan.textContent = firstPlayerMessage;
             popup.style.display = 'block';
+
+            // Create a balloon element
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            popup.appendChild(balloon);
 
             // Hide the pop-up after 5 seconds
             setTimeout(() => {
                 popup.style.display = 'none';
+                popup.removeChild(balloon); // Remove the balloon after hiding the popup
             }, 5000);
 
             // Initialize the game board
-            initializeBoard(); // Call your existing function to set up the board
+            game.initializeBoard(); // Ensure you call the correct method to set up the board
         });
 
     </script>
