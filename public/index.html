@@ -998,6 +998,7 @@
                 this.scores = { red: 0, black: 0 };
                 this.gameOver = false;
                 this.playerColor = null;
+                this.playerName = null;
                 this.gameId = null;
                 this.socket = io();
 
@@ -1006,16 +1007,22 @@
                 this.turnPopup = document.getElementById('turnPopup');
                 this.turnMessage = document.getElementById('turnMessage');
 
+                this.socket.on('waitingForOpponent', () => {
+                    alert('Waiting for an opponent to join...');
+                });
+
                 this.socket.on('playerAssign', (data) => {
                     this.playerColor = data.color;
                     this.playerName = data.name;
                     console.log(`You are playing as ${this.playerName} (${this.playerColor})`);
+                    this.highlightCurrentPlayer();
                 });
 
                 this.socket.on('gameStart', (data) => {
                     this.gameId = data.gameId;
                     this.initializeBoard();
                     console.log(`Game started with ID: ${this.gameId}`);
+                    this.showTurnPopup();
                 });
 
                 this.socket.on('opponentMove', (move) => {
@@ -1032,6 +1039,19 @@
                     profilePic.src = data.imageData;
                     localStorage.setItem(`${data.playerId}ProfilePic`, data.imageData);
                 });
+            }
+
+            highlightCurrentPlayer() {
+                const kanyieScore = document.getElementById('player1Score');
+                const stacieScore = document.getElementById('player2Score');
+                
+                if (this.playerName === 'Kanyie') {
+                    kanyieScore.classList.add('current-player');
+                    stacieScore.classList.remove('current-player');
+                } else {
+                    stacieScore.classList.add('current-player');
+                    kanyieScore.classList.remove('current-player');
+                }
             }
 
             initializeBoard() {
@@ -1090,12 +1110,16 @@
 
                 if (this.selectedPiece && !this.board[row][col]) {
                     if (this.isValidMove(this.selectedPiece.row, this.selectedPiece.col, row, col)) {
+                        const isCapture = Math.abs(row - this.selectedPiece.row) === 2;
                         this.socket.emit('makeMove', {
                             gameId: this.gameId,
                             startRow: this.selectedPiece.row,
                             startCol: this.selectedPiece.col,
                             endRow: row,
-                            endCol: col
+                            endCol: col,
+                            isCapture: isCapture,
+                            capturingPlayer: this.playerName,
+                            capturedPlayer: this.playerName === 'Kanyie' ? 'Stacie' : 'Kanyie'
                         });
                         this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
                         this.selectedPiece = null;
@@ -1151,17 +1175,13 @@
                     this.showCapturePopup(`${capturingPlayer} amekukula!`);
                 }
 
-                // Move piece
                 this.board[endRow][endCol] = piece;
                 this.board[startRow][startCol] = null;
 
-                // King promotion
-                if ((piece.color === 'red' && endRow === 0) || 
-                    (piece.color === 'black' && endRow === 7)) {
+                if ((piece.color === 'red' && endRow === 7) || (piece.color === 'black' && endRow === 0)) {
                     piece.king = true;
                 }
 
-                // Switch turns
                 this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
                 this.showTurnPopup();
             }
@@ -1205,16 +1225,6 @@
                 forfeitSection.style.display = 'block';
             }
 
-            resetGame() {
-                this.board = Array(8).fill().map(() => Array(8).fill(null));
-                this.currentPlayer = 'red';
-                this.selectedPiece = null;
-                this.gameOver = false;
-                this.initializeBoard();
-                document.getElementById('forfeitSection').style.display = 'none';
-                document.getElementById('dareSection').style.display = 'none';
-            }
-
             showCapturePopup(message) {
                 this.captureMessage.textContent = message;
                 this.capturePopup.classList.add('show');
@@ -1236,6 +1246,16 @@
                 this.turnPopupTimeout = setTimeout(() => {
                     this.turnPopup.classList.remove('show');
                 }, 10000);
+            }
+
+            resetGame() {
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.currentPlayer = 'red';
+                this.selectedPiece = null;
+                this.gameOver = false;
+                this.initializeBoard();
+                document.getElementById('forfeitSection').style.display = 'none';
+                document.getElementById('dareSection').style.display = 'none';
             }
         }
 
@@ -1303,6 +1323,15 @@
         handleProfileUpload('kanyie');
         handleProfileUpload('stacie');
         loadProfilePictures();
+
+        // Add this CSS for highlighting the current player
+        const style = document.createElement('style');
+        style.textContent = `
+            .current-player {
+                box-shadow: 0 0 10px 5px gold;
+            }
+        `;
+        document.head.appendChild(style);
 
     </script>
     <!-- Add this just before the closing </body> tag -->

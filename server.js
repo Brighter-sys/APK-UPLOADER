@@ -274,11 +274,12 @@ io.on('connection', (socket) => {
         socket.join(gameId);
         waitingPlayer.join(gameId);
         io.to(gameId).emit('gameStart', { gameId: gameId });
-        io.to(waitingPlayer.id).emit('playerAssign', { color: 'red' });
-        io.to(socket.id).emit('playerAssign', { color: 'black' });
+        io.to(waitingPlayer.id).emit('playerAssign', { color: 'red', name: 'Kanyie' });
+        io.to(socket.id).emit('playerAssign', { color: 'black', name: 'Stacie' });
         waitingPlayer = null;
     } else {
         waitingPlayer = socket;
+        socket.emit('waitingForOpponent');
     }
 
     socket.on('makeMove', (move) => {
