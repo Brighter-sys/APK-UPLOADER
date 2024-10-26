@@ -3,60 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checkers Game</title>
+    <title>STACIE NGATIA'S PLAYSTORE</title>
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/favicon.png">
+    <link rel="manifest" href="manifest.json">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        :root {
+            --primary-color: #6200ee;
+            --accent-color: #03dac6;
+            --background: #1a1a1a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --danger-color: #cf6679;
+            --success-color: #4caf50;
+            --board-dark: #8B4513;
+            --board-light: #DEB887;
+            --piece-red: #FF4444;
+            --piece-black: #333333;
+        }
+
+        :root {
+            --primary-color: #6200ee;
+            --accent-color: #03dac6;
+            --background: #1a1a1a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+        }
+
+        body, html {
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
         }
-        .game-container {
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Add new tab styles */
+        .tabs {
             display: flex;
-            gap: 20px;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 0.5rem;
+            background: var(--card-bg);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
         }
-        .board {
-            display: grid;
-            grid-template-columns: repeat(8, 50px);
-            grid-template-rows: repeat(8, 50px);
-            border: 2px solid #333;
-        }
-        .square {
-            width: 50px;
-            height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .square.light { background-color: #f0d9b5; }
-        .square.dark { background-color: #b58863; }
-        .piece {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
             cursor: pointer;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 500;
         }
-        .piece.red { background-color: #d33; }
-        .piece.black { background-color: #333; }
-        .piece.king::after {
-            content: '♔';
-            color: gold;
-            font-size: 30px;
-            line-height: 40px;
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(98, 0, 238, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            padding: 2rem;
+            border-radius: 0 0 2rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(98, 0, 238, 0.2);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             text-align: center;
         }
-        .player-info {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        .upload-section {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
         }
-        .player-info.active {
-            box-shadow: 0 0 15px gold;
+
+        .upload-section:hover {
+            transform: translateY(-5px);
         }
+
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: bold;
+        }
+
+        .input-group input[type="file"] {
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .file-type {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(98, 0, 238, 0.3);
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            overflow: hidden;
+            height: 0.5rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .app-card {
+            background: var(--card-bg);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .app-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 1rem;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .app-screenshots {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 177.78%; /* This is for a 9:16 aspect ratio (common for mobile screenshots) */
+            overflow: hidden;
+        }
+
+        .screenshot-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            transition: transform 0.3s ease;
+        }
+
+        .app-screenshot {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* This ensures the entire image is visible */
+            flex-shrink: 0;
+            background-color: rgba(0, 0, 0, 0.1); /* Light background to see image boundaries */
+        }
+
+        .screenshot-nav {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            transform: translateY(-50%);
+            z-index: 1; /* Ensure buttons are above the images */
+        }
+
+        .screenshot-nav button {
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .screenshot-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            z-index: 1; /* Ensure dots are above the images */
+        }
+
+        .screenshot-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+
+        .screenshot-dot.active {
+            background: white;
+        }
+
+        .app-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .delete-btn {
+            background: var(--danger-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(207, 102, 121, 0.3);
+        }
+
+        .upload-preview {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            display: none;
+        }
+
+        .preview-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.5rem;
+            object-fit: cover;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(98, 0, 238, 0.3);
+        }
+
+        /* Add popup styles */
         .popup {
             position: fixed;
             top: 50%;
@@ -67,160 +374,542 @@
             padding: 20px;
             border-radius: 10px;
             font-size: 24px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
             z-index: 1000;
         }
+
+        .popup.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .popup-message {
+            font-weight: 500;
+        }
+
+        /* Success checkmark animation */
+        .checkmark {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 4;
+            stroke: white;
+            stroke-miterlimit: 10;
+            stroke-dasharray: 340;
+            stroke-dashoffset: 340;
+            animation: draw 1s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+
+        @keyframes draw {
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header {
+                border-radius: 0 0 1.5rem 1.5rem;
+                padding: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .app-screenshots {
+                scroll-snap-type: x mandatory;
+            }
+
+            .app-screenshot {
+                scroll-snap-align: center;
+            }
+
+            .screenshot-nav {
+                display: flex;
+            }
+        }
+
+        /* Add checker game styles */
+        .game-container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .game-board {
+            width: 560px;
+            height: 560px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            border: 4px solid var(--board-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .square {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .square.light { background-color: var(--board-light); }
+        .square.dark { background-color: var(--board-dark); }
+
+        .piece {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .piece.red {
+            background: var(--piece-red);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .piece.black {
+            background: var(--piece-black);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .piece.king::after {
+            content: '👑';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+
+        .piece.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .game-info {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            min-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            gap: 1rem;
+        }
+
+        .player-score {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.5rem;
+        }
+
+        .player-score.active {
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .forfeit-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dare-input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .game-button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .game-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .forfeit-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 1rem 0;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent; /* Fallback for browsers that don't support background-clip: text */
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                width: 320px;
+                height: 320px;
+            }
+
+            .square {
+                width: 40px;
+                height: 40px;
+            }
+
+            .piece {
+                width: 30px;
+                height: 30px;
+            }
+        }
+
+        .profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+
+        .upload-profile-btn {
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .upload-profile-btn:hover {
+            background-color: #45a049;
+        }
+
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="player-info" id="player1">
-            <h2>Kanyie (Red)</h2>
-            <p>Score: <span id="score1">0</span></p>
+    <div class="header">
+        <h1>STACIE NGATIA'S PLAYSTORE</h1>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" data-tab="my-apps">My Apps</button>
+            <button class="tab" data-tab="upload-app">Upload App</button>
+            <button class="tab" data-tab="games">Games</button>
         </div>
-        <div class="board" id="board"></div>
-        <div class="player-info" id="player2">
-            <h2>Stacie (Black)</h2>
-            <p>Score: <span id="score2">0</span></p>
+
+        <div id="my-apps" class="tab-content active">
+            <div class="apps-grid" id="fileList">
+                <!-- Apps will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div id="upload-app" class="tab-content">
+            <div class="upload-section">
+                <form id="uploadForm" class="upload-form">
+                    <div class="input-group">
+                        <label for="password">Access Key:</label>
+                        <input type="password" id="password" placeholder="Enter Access Key" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="apkFile">APK File:</label>
+                        <input type="file" accept=".apk" required id="apkFile">
+                        <span class="file-type">Select .apk file</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="appIcon">App Icon:</label>
+                        <input type="file" accept="image/*" id="appIcon">
+                        <span class="file-type">Select image for app icon</span>
+                    </div>
+                    <div class="input-group">
+                        <label for="screenshots">Screenshots:</label>
+                        <input type="file" accept="image/*" multiple id="screenshots">
+                        <span class="file-type">Select one or more screenshot images</span>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview">
+                        <img id="appIconPreview" class="preview-icon" style="display: none;">
+                    </div>
+                    <button type="submit" class="upload-btn">Upload Application</button>
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    <div id="popup" class="popup" style="display: none;"></div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let game, player;
+    <!-- Add new games tab content -->
+    <div id="games" class="tab-content">
+        <div class="game-container">
+            <div class="game-board" id="checkerBoard"></div>
+            <div class="game-info">
+                <div class="score-board">
+                    <div class="player-score" id="player1Score">
+                        <img id="kanyieProfilePic" class="profile-pic" src="/assets/avatar.png" alt="Kanyie's profile">
+                        <input type="file" id="kanyieProfileUpload" accept="image/*" style="display: none;">
+                        <button class="upload-profile-btn" onclick="document.getElementById('kanyieProfileUpload').click()">Update Profile</button>
+                        <h3>Kanyie (Red)</h3>
+                        <p>Score: <span>0</span></p>
+                    </div>
+                    <div class="player-score" id="player2Score">
+                        <img id="stacieProfilePic" class="profile-pic" src="/assets/avatar.png" alt="Stacie's profile">
+                        <input type="file" id="stacieProfileUpload" accept="image/*" style="display: none;">
+                        <button class="upload-profile-btn" onclick="document.getElementById('stacieProfileUpload').click()">Update Profile</button>
+                        <h3>Stacie (Black)</h3>
+                        <p>Score: <span>0</span></p>
+                    </div>
+                </div>
+                <button class="game-button" id="newGameBtn">New Game</button>
+                
+                <div class="forfeit-section" id="forfeitSection" style="display: none;">
+                    <h3>Game Over!</h3>
+                    <p>Winner: <span id="winnerName"></span></p>
+                    <div class="forfeit-amount">
+                        Pay: £<span id="forfeitAmount">0</span>
+                    </div>
+                    <button class="game-button" id="rejectPaymentBtn">I don't want to pay</button>
+                    <div id="dareSection" style="display: none;">
+                        <p>Enter a dare instead:</p>
+                        <input type="text" class="dare-input" id="dareInput" placeholder="Enter your dare...">
+                        <button class="game-button" id="submitDareBtn">Set Dare</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        const board = document.getElementById('board');
-        const popup = document.getElementById('popup');
+    <!-- Add popup HTML -->
+    <div class="popup" id="uploadPopup">
+        <svg class="checkmark" viewBox="0 0 52 52">
+            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+        <span class="popup-message">Upload completed successfully!</span>
+    </div>
 
-        function showPopup(message, duration = 2000) {
-            popup.textContent = message;
-            popup.style.display = 'block';
-            setTimeout(() => { popup.style.display = 'none'; }, duration);
+   <!-- ... existing HTML ... -->
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    class CheckersGame {
+        constructor() {
+            this.board = Array(8).fill().map(() => Array(8).fill(null));
+            this.currentPlayer = 'red';
+            this.selectedPiece = null;
+            this.scores = { red: 0, black: 0 };
+            this.gameOver = false;
+            this.playerColor = null;
+            this.playerName = null;
+            this.gameId = null;
+            this.socket = io();
+
+            this.capturePopup = document.getElementById('capturePopup');
+            this.captureMessage = document.getElementById('captureMessage');
+            this.turnPopup = document.getElementById('turnPopup');
+            this.turnMessage = document.getElementById('turnMessage');
+
+            this.socket.on('waitingForOpponent', () => {
+                alert('Waiting for an opponent to join...');
+            });
+
+            this.socket.on('playerAssign', (data) => {
+                this.playerColor = data.color;
+                this.playerName = data.name;
+                console.log(`You are playing as ${this.playerName} (${this.playerColor})`);
+                this.highlightCurrentPlayer();
+            });
+
+            this.socket.on('gameStart', (data) => {
+                this.gameId = data.gameId;
+                this.initializeBoard();
+                console.log(`Game started with ID: ${this.gameId}`);
+                this.showTurnPopup();
+            });
+
+            this.socket.on('opponentMove', (move) => {
+                this.makeMove(move.startRow, move.startCol, move.endRow, move.endCol);
+                this.renderBoard();
+            });
+
+            this.socket.on('pieceCapture', (data) => {
+                this.showCapturePopup(`${data.capturingPlayer} amekukula!`);
+            });
+
+            this.socket.on('profilePicUpdated', (data) => {
+                const profilePic = document.getElementById(`${data.playerId}ProfilePic`);
+                profilePic.src = data.imageData;
+                localStorage.setItem(`${data.playerId}ProfilePic`, data.imageData);
+            });
         }
 
-        function updateBoard() {
-            board.innerHTML = '';
-            for (let row = 0; row < 8; row++) {
-                for (let col = 0; col < 8; col++) {
-                    const square = document.createElement('div');
-                    square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
-                    if (game.board[row][col]) {
-                        const piece = document.createElement('div');
-                        piece.className = `piece ${game.board[row][col].color}`;
-                        if (game.board[row][col].king) piece.classList.add('king');
-                        piece.addEventListener('click', () => selectPiece(row, col));
-                        square.appendChild(piece);
+        highlightCurrentPlayer() {
+            const kanyieScore = document.getElementById('player1Score');
+            const stacieScore = document.getElementById('player2Score');
+            
+            if (this.playerName === 'Kanyie') {
+                kanyieScore.classList.add('current-player');
+                stacieScore.classList.remove('current-player');
+            } else {
+                stacieScore.classList.add('current-player');
+                kanyieScore.classList.remove('current-player');
+            }
+        }
+
+        initializeBoard() {
+            // ... existing initializeBoard code ...
+            this.renderBoard();
+        }
+
+        renderBoard() {
+            // ... existing renderBoard code ...
+        }
+
+        handlePieceClick(row, col) {
+            // ... existing handlePieceClick code ...
+        }
+
+        handleSquareClick(row, col) {
+            if (this.currentPlayer !== this.playerColor || this.gameOver) return;
+
+            if (this.selectedPiece && !this.board[row][col]) {
+                if (this.isValidMove(this.selectedPiece.row, this.selectedPiece.col, row, col)) {
+                    const isCapture = Math.abs(row - this.selectedPiece.row) === 2;
+                    this.socket.emit('makeMove', {
+                        gameId: this.gameId,
+                        startRow: this.selectedPiece.row,
+                        startCol: this.selectedPiece.col,
+                        endRow: row,
+                        endCol: col,
+                        isCapture: isCapture,
+                        capturingPlayer: this.playerName,
+                        capturedPlayer: this.playerName === 'Kanyie' ? 'Stacie' : 'Kanyie'
+                    });
+                    this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
+                    this.selectedPiece = null;
+                    this.renderBoard();
+                    
+                    // Remove turn popup when a move is made
+                    this.turnPopup.classList.remove('show');
+                    
+                    if (this.checkWinner()) {
+                        this.handleGameOver();
                     }
-                    square.addEventListener('click', () => selectSquare(row, col));
-                    board.appendChild(square);
                 }
             }
         }
 
-        let selectedPiece = null;
-
-        function selectPiece(row, col) {
-            if (game.currentTurn !== player.color) return;
-            if (game.board[row][col]?.color !== player.color) return;
-            selectedPiece = { row, col };
-            updateBoard();
-            highlightMoves(row, col);
-        }
-
-        function highlightMoves(row, col) {
-            const moves = getValidMoves(row, col);
-            moves.forEach(move => {
-                const square = board.children[move.to.row * 8 + move.to.col];
-                square.style.backgroundColor = 'lightgreen';
-            });
-        }
-
-        function selectSquare(row, col) {
-            if (!selectedPiece) return;
-            const move = getValidMoves(selectedPiece.row, selectedPiece.col)
-                .find(m => m.to.row === row && m.to.col === col);
-            if (move) {
-                socket.emit('makeMove', { gameId: game.id, move });
-                selectedPiece = null;
+        makeMove(startRow, startCol, endRow, endCol) {
+            const piece = this.board[startRow][startCol];
+            const isCapture = Math.abs(endRow - startRow) === 2;
+            
+            if (isCapture) {
+                const capturedRow = (startRow + endRow) / 2;
+                const capturedCol = (startCol + endCol) / 2;
+                this.board[capturedRow][capturedCol] = null;
+                
+                const capturingPlayer = piece.color === 'red' ? 'Kanyie' : 'Stacie';
+                const capturedPlayer = piece.color === 'red' ? 'Stacie' : 'Kanyie';
+                this.showCapturePopup(`${capturingPlayer} amekukula!`);
             }
-        }
 
-        function getValidMoves(row, col) {
-            const piece = game.board[row][col];
-            if (!piece) return [];
+            this.board[endRow][endCol] = piece;
+            this.board[startRow][startCol] = null;
 
-            const moves = [];
-            const directions = piece.king ? [-1, 1] : piece.color === 'red' ? [-1] : [1];
-
-            directions.forEach(dRow => {
-                [-1, 1].forEach(dCol => {
-                    if (isValidMove(row, col, row + dRow, col + dCol)) {
-                        moves.push({ from: { row, col }, to: { row: row + dRow, col: col + dCol } });
-                    }
-                    if (isValidCapture(row, col, row + dRow, col + dCol, row + 2*dRow, col + 2*dCol)) {
-                        moves.push({
-                            from: { row, col },
-                            to: { row: row + 2*dRow, col: col + 2*dCol },
-                            captures: { row: row + dRow, col: col + dCol }
-                        });
-                    }
-                });
-            });
-
-            return moves;
-        }
-
-        function isValidMove(fromRow, fromCol, toRow, toCol) {
-            if (toRow < 0 || toRow > 7 || toCol < 0 || toCol > 7) return false;
-            if (game.board[toRow][toCol]) return false;
-            return true;
-        }
-
-        function isValidCapture(fromRow, fromCol, overRow, overCol, toRow, toCol) {
-            if (!isValidMove(fromRow, fromCol, toRow, toCol)) return false;
-            if (!game.board[overRow][overCol]) return false;
-            if (game.board[overRow][overCol].color === game.board[fromRow][fromCol].color) return false;
-            return true;
-        }
-
-        function updatePlayerInfo() {
-            document.getElementById('player1').classList.toggle('active', game.currentTurn === 'red');
-            document.getElementById('player2').classList.toggle('active', game.currentTurn === 'black');
-        }
-
-        socket.on('gameJoined', (data) => {
-            game = data.game;
-            player = data.player;
-            updateBoard();
-            updatePlayerInfo();
-            showPopup(`Welcome, ${player.name}! You are playing as ${player.color}.`);
-        });
-
-        socket.on('gameStart', (updatedGame) => {
-            game = updatedGame;
-            updateBoard();
-            updatePlayerInfo();
-            showPopup('Game started! Red goes first.');
-        });
-
-        socket.on('moveMade', ({ game: updatedGame, move }) => {
-            game = updatedGame;
-            updateBoard();
-            updatePlayerInfo();
-            if (move.captures) {
-                showPopup(`${game.currentTurn === 'red' ? 'Stacie' : 'Kanyie'} captured a piece!`);
+            if ((piece.color === 'red' && endRow === 7) || (piece.color === 'black' && endRow === 0)) {
+                piece.king = true;
             }
-        });
 
-        socket.on('playerLeft', ({ game: updatedGame }) => {
-            game = updatedGame;
-            showPopup('Your opponent left the game. Waiting for a new player...');
-        });
+            this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
+            this.showTurnPopup();
+        }
 
-        socket.emit('joinGame');
-    </script>
-</body>
-</html>
-</body>
-</html>
+        isValidMove(startRow, startCol, endRow, endCol) {
+            // ... existing isValidMove code ...
+        }
+
+        checkWinner() {
+            // ... existing checkWinner code ...
+        }
+
+        handleGameOver() {
+            // ... existing handleGameOver code ...
+        }
+
+        showCapturePopup(message) {
+            this.captureMessage.textContent = message;
+            this.capturePopup.classList.add('show');
+            setTimeout(() => {
+                this.capturePopup.classList.remove('show');
+            }, 2000);
+        }
+
+        showTurnPopup() {
+            const currentPlayerName = this.currentPlayer === 'red' ? 'Kanyie' : 'Stacie';
+            this.turnMessage.textContent = `${currentPlayerName}'s turn`;
+            this.turnPopup.classList.add('show');
+            
+            // Clear any existing timeout
+            if (this.turnPopupTimeout) {
+                clearTimeout(this.turnPopupTimeout);
+            }
+            
+            this.turnPopupTimeout = setTimeout(() => {
+                this.turnPopup.classList.remove('show');
+            }, 10000);
+        }
+
+        resetGame() {
+            // ... existing resetGame code ...
+        }
+    }
+
+    // Initialize game
+    let game = new CheckersGame();
+
+    // ... existing profile picture handling code ...
+
+    // Add this CSS for highlighting the current player
+    const style = document.createElement('style');
+    style.textContent = `
+        .current-player {
+            box-shadow: 0 0 10px 5px gold;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
