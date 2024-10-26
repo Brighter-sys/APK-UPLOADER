@@ -723,193 +723,623 @@
         <span class="popup-message">Upload completed successfully!</span>
     </div>
 
-   <!-- ... existing HTML ... -->
+    <!-- Add this script tag before your existing script -->
+    <script src="/socket.io/socket.io.js"></script>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    class CheckersGame {
-        constructor() {
-            this.board = Array(8).fill().map(() => Array(8).fill(null));
-            this.currentPlayer = 'red';
-            this.selectedPiece = null;
-            this.scores = { red: 0, black: 0 };
-            this.gameOver = false;
-            this.playerColor = null;
-            this.playerName = null;
-            this.gameId = null;
-            this.socket = io();
+    <script>
+        // Add tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-            this.capturePopup = document.getElementById('capturePopup');
-            this.captureMessage = document.getElementById('captureMessage');
-            this.turnPopup = document.getElementById('turnPopup');
-            this.turnMessage = document.getElementById('turnMessage');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
 
-            this.socket.on('waitingForOpponent', () => {
-                alert('Waiting for an opponent to join...');
+                // Add active class to clicked tab and show corresponding content
+                tab.classList.add('active');
+                const tabId = tab.getAttribute('data-tab');
+                const tabContent = document.getElementById(tabId);
+                tabContent.classList.add('active');
+                tabContent.style.display = 'block';
+            });
+        });
+
+        // Add popup functionality
+        function showPopup(message, duration = 3000) {
+            const popup = document.getElementById('uploadPopup');
+            const popupMessage = popup.querySelector('.popup-message');
+            popupMessage.textContent = message;
+            
+            // Show popup
+            popup.classList.add('show');
+            
+            // Hide popup after duration
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, duration);
+        }
+
+        const uploadForm = document.getElementById('uploadForm');
+        const progressContainer = document.querySelector('.progress-container');
+        const progressBar = document.querySelector('.progress-bar');
+        const fileList = document.getElementById('fileList');
+        const passwordInput = document.getElementById('password');
+        const apkFileInput = document.getElementById('apkFile');
+        const appIconInput = document.getElementById('appIcon');
+        const screenshotsInput = document.getElementById('screenshots');
+        const appIconPreview = document.getElementById('appIconPreview');
+        const uploadPreview = document.getElementById('uploadPreview');
+        const correctPassword = 'Abdul';
+
+        appIconInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    appIconPreview.src = e.target.result;
+                    appIconPreview.style.display = 'block';
+                    uploadPreview.style.display = 'flex';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const apkFile = apkFileInput.files[0];
+            const appIcon = appIconInput.files[0];
+            const screenshots = screenshotsInput.files;
+            const password = passwordInput.value;
+
+            if (!apkFile) {
+                alert('Please select an APK file to upload.');
+                return;
+            }
+
+            if (password !== correctPassword) {
+                alert('Invalid access key. Please try again.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('apk', apkFile);
+            if (appIcon) {
+                formData.append('icon', appIcon);
+            }
+            Array.from(screenshots).forEach((screenshot, index) => {
+                formData.append(`screenshot${index}`, screenshot);
             });
 
-            this.socket.on('playerAssign', (data) => {
-                this.playerColor = data.color;
-                this.playerName = data.name;
-                console.log(`You are playing as ${this.playerName} (${this.playerColor})`);
-                this.highlightCurrentPlayer();
+            progressContainer.style.display = 'block';
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                }
             });
 
-            this.socket.on('gameStart', (data) => {
-                this.gameId = data.gameId;
-                this.initializeBoard();
-                console.log(`Game started with ID: ${this.gameId}`);
-                this.showTurnPopup();
-            });
+            xhr.onload = async () => {
+                if (xhr.status === 200) {
+                    // Reset form
+                    apkFileInput.value = '';
+                    passwordInput.value = '';
+                    appIconInput.value = '';
+                    screenshotsInput.value = '';
+                    appIconPreview.style.display = 'none';
+                    uploadPreview.style.display = 'none';
+                    
+                    // Show success popup
+                    showPopup('Upload completed successfully!');
+                    
+                    // Switch to My Apps tab
+                    const myAppsTab = document.querySelector('[data-tab="my-apps"]');
+                    myAppsTab.click();
+                    
+                    // Reload files
+                    await loadFiles();
+                } else {
+                    showPopup('Upload failed: ' + xhr.statusText, 5000);
+                }
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+            };
 
-            this.socket.on('opponentMove', (move) => {
-                this.makeMove(move.startRow, move.startCol, move.endRow, move.endCol);
-                this.renderBoard();
-            });
+            xhr.send(formData);
+        });
 
-            this.socket.on('pieceCapture', (data) => {
-                this.showCapturePopup(`${data.capturingPlayer} amekukula!`);
-            });
+        function initializeScreenshotSliders() {
+            document.querySelectorAll('.app-card').forEach(card => {
+                const screenshotsContainer = card.querySelector('.app-screenshots');
+                const container = card.querySelector('.screenshot-container');
+                const prevButton = card.querySelector('.prev-screenshot');
+                const nextButton = card.querySelector('.next-screenshot');
+                const dots = card.querySelectorAll('.screenshot-dot');
+                const screenshots = card.querySelectorAll('.app-screenshot');
+                let currentIndex = 0;
 
-            this.socket.on('profilePicUpdated', (data) => {
-                const profilePic = document.getElementById(`${data.playerId}ProfilePic`);
-                profilePic.src = data.imageData;
-                localStorage.setItem(`${data.playerId}ProfilePic`, data.imageData);
+                // Adjust container aspect ratio based on the first image
+                const firstImage = screenshots[0];
+                if (firstImage) {
+                    firstImage.onload = function() {
+                        const aspectRatio = (this.naturalHeight / this.naturalWidth) * 100;
+                        screenshotsContainer.style.paddingBottom = `${aspectRatio}%`;
+                    }
+                }
+
+                function updateSlider() {
+                    container.style.transform = `translateX(-${currentIndex * 100}%)`;
+                    dots.forEach((dot, index) => {
+                        dot.classList.toggle('active', index === currentIndex);
+                    });
+                }
+
+                prevButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex - 1 + screenshots.length) % screenshots.length;
+                    updateSlider();
+                });
+
+                nextButton.addEventListener('click', () => {
+                    currentIndex = (currentIndex + 1) % screenshots.length;
+                    updateSlider();
+                });
+
+                dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateSlider();
+                    });
+                });
             });
         }
 
-        highlightCurrentPlayer() {
-            const kanyieScore = document.getElementById('player1Score');
-            const stacieScore = document.getElementById('player2Score');
+        async function loadFiles() {
+            const response = await fetch('/files');
+            const files = await response.json();
             
-            if (this.playerName === 'Kanyie') {
-                kanyieScore.classList.add('current-player');
-                stacieScore.classList.remove('current-player');
-            } else {
-                stacieScore.classList.add('current-player');
-                kanyieScore.classList.remove('current-player');
+            fileList.innerHTML = files.map(file => createAppCard(file)).join('');
+            
+            initializeScreenshotSliders();
+        }
+
+        async function deleteApp(fileId) {
+            if (!confirm('Are you sure you want to delete this app?')) return;
+            
+            const password = prompt('Enter access key to delete:');
+            if (!password) {
+                alert('Delete operation cancelled');
+                return;
+            }
+
+            const url = `/delete/${fileId}`; // Don't modify fileId here
+            console.log('Sending delete request to:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${password}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message || 'App deleted successfully');
+                    await loadFiles();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Server response:', response.status, errorText);
+                    alert(`Failed to delete app. Status: ${response.status}. ${errorText}`);
+                }
+            } catch (error) {
+                console.error('Error deleting app:', error);
+                alert(`Failed to delete app. Error: ${error.message}`);
             }
         }
 
-        initializeBoard() {
-            // ... existing initializeBoard code ...
-            this.renderBoard();
+        function createAppCard(file) {
+            const screenshots = file.screenshots || ['/api/placeholder/160/300', '/api/placeholder/160/300'];
+            return `
+                <div class="app-card" data-id="${file.id}">
+                    <div class="app-header">
+                        <img src="${file.icon || '/api/placeholder/72/72'}" alt="App icon" class="app-icon">
+                        <div class="app-info">
+                            <h3 class="app-name">${file.originalName}</h3>
+                            <div class="app-meta">
+                                <div>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                                <div>Released: ${new Date(file.uploadDate).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="app-screenshots">
+                        <div class="screenshot-container">
+                            ${screenshots.map(screenshot => 
+                                `<img src="${screenshot}" alt="App screenshot" class="app-screenshot">`
+                            ).join('')}
+                        </div>
+                        <div class="screenshot-nav">
+                            <button class="prev-screenshot">&lt;</button>
+                            <button class="next-screenshot">&gt;</button>
+                        </div>
+                        <div class="screenshot-dots">
+                            ${screenshots.map((_, index) => 
+                                `<div class="screenshot-dot${index === 0 ? ' active' : ''}"></div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    <div class="app-actions">
+                        <a href="/download/${file.id}" class="download-btn">Download</a>
+                        <button onclick="deleteApp('${file.id}')" class="delete-btn">Delete</button>
+                    </div>
+                </div>
+            `;
         }
 
-        renderBoard() {
-            // ... existing renderBoard code ...
-        }
+        loadFiles();
 
-        handlePieceClick(row, col) {
-            // ... existing handlePieceClick code ...
-        }
+        // Checkers game implementation
+        class CheckersGame {
+            constructor() {
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.currentPlayer = 'red';
+                this.selectedPiece = null;
+                this.scores = { red: 0, black: 0 };
+                this.gameOver = false;
+                this.playerColor = null;
+                this.playerName = null;
+                this.gameId = null;
+                this.socket = io();
 
-        handleSquareClick(row, col) {
-            if (this.currentPlayer !== this.playerColor || this.gameOver) return;
+                this.capturePopup = document.getElementById('capturePopup');
+                this.captureMessage = document.getElementById('captureMessage');
+                this.turnPopup = document.getElementById('turnPopup');
+                this.turnMessage = document.getElementById('turnMessage');
 
-            if (this.selectedPiece && !this.board[row][col]) {
-                if (this.isValidMove(this.selectedPiece.row, this.selectedPiece.col, row, col)) {
-                    const isCapture = Math.abs(row - this.selectedPiece.row) === 2;
-                    this.socket.emit('makeMove', {
-                        gameId: this.gameId,
-                        startRow: this.selectedPiece.row,
-                        startCol: this.selectedPiece.col,
-                        endRow: row,
-                        endCol: col,
-                        isCapture: isCapture,
-                        capturingPlayer: this.playerName,
-                        capturedPlayer: this.playerName === 'Kanyie' ? 'Stacie' : 'Kanyie'
-                    });
-                    this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
-                    this.selectedPiece = null;
+                this.socket.on('waitingForOpponent', () => {
+                    alert('Waiting for an opponent to join...');
+                });
+
+                this.socket.on('playerAssign', (data) => {
+                    this.playerColor = data.color;
+                    this.playerName = data.name;
+                    console.log(`You are playing as ${this.playerName} (${this.playerColor})`);
+                    this.highlightCurrentPlayer();
+                });
+
+                this.socket.on('gameStart', (data) => {
+                    this.gameId = data.gameId;
+                    this.initializeBoard();
+                    console.log(`Game started with ID: ${this.gameId}`);
+                    this.showTurnPopup();
+                });
+
+                this.socket.on('opponentMove', (move) => {
+                    this.makeMove(move.startRow, move.startCol, move.endRow, move.endCol);
                     this.renderBoard();
-                    
-                    // Remove turn popup when a move is made
-                    this.turnPopup.classList.remove('show');
-                    
-                    if (this.checkWinner()) {
-                        this.handleGameOver();
+                });
+
+                this.socket.on('pieceCapture', (data) => {
+                    this.showCapturePopup(`${data.capturingPlayer} amekukula!`);
+                });
+
+                this.socket.on('profilePicUpdated', (data) => {
+                    const profilePic = document.getElementById(`${data.playerId}ProfilePic`);
+                    profilePic.src = data.imageData;
+                    localStorage.setItem(`${data.playerId}ProfilePic`, data.imageData);
+                });
+            }
+
+            highlightCurrentPlayer() {
+                const kanyieScore = document.getElementById('player1Score');
+                const stacieScore = document.getElementById('player2Score');
+                
+                if (this.playerName === 'Kanyie') {
+                    kanyieScore.classList.add('current-player');
+                    stacieScore.classList.remove('current-player');
+                } else {
+                    stacieScore.classList.add('current-player');
+                    kanyieScore.classList.remove('current-player');
+                }
+            }
+
+            initializeBoard() {
+                // Place initial pieces
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 1) {
+                            if (row < 3) this.board[row][col] = { color: 'black', king: false };
+                            if (row > 4) this.board[row][col] = { color: 'red', king: false };
+                        }
+                    }
+                }
+                this.renderBoard();
+            }
+
+            renderBoard() {
+                const board = document.getElementById('checkerBoard');
+                board.innerHTML = '';
+
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                        
+                        if (this.board[row][col]) {
+                            const piece = document.createElement('div');
+                            piece.className = `piece ${this.board[row][col].color}`;
+                            if (this.board[row][col].king) piece.classList.add('king');
+                            if (this.selectedPiece && this.selectedPiece.row === row && this.selectedPiece.col === col) {
+                                piece.classList.add('selected');
+                            }
+                            
+                            piece.addEventListener('click', () => this.handlePieceClick(row, col));
+                            square.appendChild(piece);
+                        }
+
+                        square.addEventListener('click', () => this.handleSquareClick(row, col));
+                        board.appendChild(square);
+                    }
+                }
+
+                document.getElementById('player1Score').classList.toggle('active', this.currentPlayer === 'red');
+                document.getElementById('player2Score').classList.toggle('active', this.currentPlayer === 'black');
+            }
+
+            handlePieceClick(row, col) {
+                const piece = this.board[row][col];
+                if (piece && piece.color === this.playerColor && !this.gameOver) {
+                    this.selectedPiece = { row, col };
+                    this.renderBoard();
+                }
+            }
+
+            handleSquareClick(row, col) {
+                if (this.currentPlayer !== this.playerColor || this.gameOver) return;
+
+                if (this.selectedPiece && !this.board[row][col]) {
+                    if (this.isValidMove(this.selectedPiece.row, this.selectedPiece.col, row, col)) {
+                        const isCapture = Math.abs(row - this.selectedPiece.row) === 2;
+                        this.socket.emit('makeMove', {
+                            gameId: this.gameId,
+                            startRow: this.selectedPiece.row,
+                            startCol: this.selectedPiece.col,
+                            endRow: row,
+                            endCol: col,
+                            isCapture: isCapture,
+                            capturingPlayer: this.playerName,
+                            capturedPlayer: this.playerName === 'Kanyie' ? 'Stacie' : 'Kanyie'
+                        });
+                        this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
+                        this.selectedPiece = null;
+                        this.renderBoard();
+                        
+                        // Remove turn popup when a move is made
+                        this.turnPopup.classList.remove('show');
+                        
+                        if (this.checkWinner()) {
+                            this.handleGameOver();
+                        }
                     }
                 }
             }
-        }
 
-        makeMove(startRow, startCol, endRow, endCol) {
-            const piece = this.board[startRow][startCol];
-            const isCapture = Math.abs(endRow - startRow) === 2;
-            
-            if (isCapture) {
-                const capturedRow = (startRow + endRow) / 2;
-                const capturedCol = (startCol + endCol) / 2;
-                this.board[capturedRow][capturedCol] = null;
+            isValidMove(startRow, startCol, endRow, endCol) {
+                const piece = this.board[startRow][startCol];
+                const rowDiff = endRow - startRow;
+                const colDiff = Math.abs(endCol - startCol);
+
+                // Basic movement rules
+                if (!piece || colDiff === 0) return false;
+
+                // Regular pieces can only move forward
+                if (!piece.king) {
+                    if (piece.color === 'red' && rowDiff >= 0) return false;
+                    if (piece.color === 'black' && rowDiff <= 0) return false;
+                }
+
+                // Jump move
+                if (colDiff === 2 && Math.abs(rowDiff) === 2) {
+                    const jumpedRow = startRow + rowDiff/2;
+                    const jumpedCol = startCol + (endCol - startCol)/2;
+                    const jumpedPiece = this.board[jumpedRow][jumpedCol];
+                    return jumpedPiece && jumpedPiece.color !== piece.color;
+                }
+
+                // Regular move
+                return colDiff === 1 && Math.abs(rowDiff) === 1;
+            }
+
+            makeMove(startRow, startCol, endRow, endCol) {
+                const piece = this.board[startRow][startCol];
+                const isCapture = Math.abs(endRow - startRow) === 2;
                 
-                const capturingPlayer = piece.color === 'red' ? 'Kanyie' : 'Stacie';
-                const capturedPlayer = piece.color === 'red' ? 'Stacie' : 'Kanyie';
-                this.showCapturePopup(`${capturingPlayer} amekukula!`);
+                if (isCapture) {
+                    const capturedRow = (startRow + endRow) / 2;
+                    const capturedCol = (startCol + endCol) / 2;
+                    this.board[capturedRow][capturedCol] = null;
+                    
+                    const capturingPlayer = piece.color === 'red' ? 'Kanyie' : 'Stacie';
+                    const capturedPlayer = piece.color === 'red' ? 'Stacie' : 'Kanyie';
+                    this.showCapturePopup(`${capturingPlayer} amekukula!`);
+                }
+
+                this.board[endRow][endCol] = piece;
+                this.board[startRow][startCol] = null;
+
+                if ((piece.color === 'red' && endRow === 7) || (piece.color === 'black' && endRow === 0)) {
+                    piece.king = true;
+                }
+
+                this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
+                this.showTurnPopup();
             }
 
-            this.board[endRow][endCol] = piece;
-            this.board[startRow][startCol] = null;
+            checkWinner() {
+                let redPieces = 0;
+                let blackPieces = 0;
 
-            if ((piece.color === 'red' && endRow === 7) || (piece.color === 'black' && endRow === 0)) {
-                piece.king = true;
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (this.board[row][col]) {
+                            if (this.board[row][col].color === 'red') redPieces++;
+                            else blackPieces++;
+                        }
+                    }
+                }
+
+                if (redPieces === 0) {
+                    this.scores.black++;
+                    return 'black';
+                } else if (blackPieces === 0) {
+                    this.scores.red++;
+                    return 'red';
+                }
+
+                return null;
             }
 
-            this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
-            this.showTurnPopup();
-        }
-
-        isValidMove(startRow, startCol, endRow, endCol) {
-            // ... existing isValidMove code ...
-        }
-
-        checkWinner() {
-            // ... existing checkWinner code ...
-        }
-
-        handleGameOver() {
-            // ... existing handleGameOver code ...
-        }
-
-        showCapturePopup(message) {
-            this.captureMessage.textContent = message;
-            this.capturePopup.classList.add('show');
-            setTimeout(() => {
-                this.capturePopup.classList.remove('show');
-            }, 2000);
-        }
-
-        showTurnPopup() {
-            const currentPlayerName = this.currentPlayer === 'red' ? 'Kanyie' : 'Stacie';
-            this.turnMessage.textContent = `${currentPlayerName}'s turn`;
-            this.turnPopup.classList.add('show');
-            
-            // Clear any existing timeout
-            if (this.turnPopupTimeout) {
-                clearTimeout(this.turnPopupTimeout);
+            handleGameOver() {
+                this.gameOver = true;
+                const forfeitSection = document.getElementById('forfeitSection');
+                const winnerName = document.getElementById('winnerName');
+                const forfeitAmount = document.getElementById('forfeitAmount');
+                
+                winnerName.textContent = this.currentPlayer === 'red' ? 'Stacie (Black)' : 'Kanyie (Red)';
+                forfeitAmount.textContent = Math.floor(Math.random() * 20) + 5;
+                
+                document.querySelector('#player1Score span').textContent = this.scores.red;
+                document.querySelector('#player2Score span').textContent = this.scores.black;
+                
+                forfeitSection.style.display = 'block';
             }
-            
-            this.turnPopupTimeout = setTimeout(() => {
-                this.turnPopup.classList.remove('show');
-            }, 10000);
+
+            showCapturePopup(message) {
+                this.captureMessage.textContent = message;
+                this.capturePopup.classList.add('show');
+                setTimeout(() => {
+                    this.capturePopup.classList.remove('show');
+                }, 2000);
+            }
+
+            showTurnPopup() {
+                const currentPlayerName = this.currentPlayer === 'red' ? 'Kanyie' : 'Stacie';
+                this.turnMessage.textContent = `${currentPlayerName}'s turn`;
+                this.turnPopup.classList.add('show');
+                
+                // Clear any existing timeout
+                if (this.turnPopupTimeout) {
+                    clearTimeout(this.turnPopupTimeout);
+                }
+                
+                this.turnPopupTimeout = setTimeout(() => {
+                    this.turnPopup.classList.remove('show');
+                }, 10000);
+            }
+
+            resetGame() {
+                this.board = Array(8).fill().map(() => Array(8).fill(null));
+                this.currentPlayer = 'red';
+                this.selectedPiece = null;
+                this.gameOver = false;
+                this.initializeBoard();
+                document.getElementById('forfeitSection').style.display = 'none';
+                document.getElementById('dareSection').style.display = 'none';
+            }
         }
 
-        resetGame() {
-            // ... existing resetGame code ...
+        // Initialize game
+        let game = new CheckersGame();
+
+        // Add event listeners for game controls
+        document.getElementById('newGameBtn').addEventListener('click', () => {
+            game.resetGame();
+        });
+
+        document.getElementById('rejectPaymentBtn').addEventListener('click', () => {
+            document.getElementById('dareSection').style.display = 'block';
+        });
+
+        document.getElementById('submitDareBtn').addEventListener('click', () => {
+            const dareInput = document.getElementById('dareInput');
+            if (dareInput.value.trim() !== '') {
+                alert(`Dare submitted: ${dareInput.value}`);
+                dareInput.value = '';
+                document.getElementById('dareSection').style.display = 'none';
+                game.resetGame();
+            } else {
+                alert('Please enter a dare before submitting.');
+            }
+        });
+
+        // Initialize the game board
+        game.renderBoard();
+
+        // Function to handle profile picture upload
+        function handleProfileUpload(playerId) {
+            const fileInput = document.getElementById(`${playerId}ProfileUpload`);
+            const profilePic = document.getElementById(`${playerId}ProfilePic`);
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const imageData = event.target.result;
+                        profilePic.src = imageData;
+                        localStorage.setItem(`${playerId}ProfilePic`, imageData);
+                        
+                        // Emit the profile picture update to the server
+                        game.socket.emit('updateProfilePic', { playerId, imageData });
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
         }
-    }
 
-    // Initialize game
-    let game = new CheckersGame();
-
-    // ... existing profile picture handling code ...
-
-    // Add this CSS for highlighting the current player
-    const style = document.createElement('style');
-    style.textContent = `
-        .current-player {
-            box-shadow: 0 0 10px 5px gold;
+        // Load profile pictures from local storage
+        function loadProfilePictures() {
+            const players = ['kanyie', 'stacie'];
+            players.forEach(player => {
+                const storedPic = localStorage.getItem(`${player}ProfilePic`);
+                if (storedPic) {
+                    document.getElementById(`${player}ProfilePic`).src = storedPic;
+                }
+            });
         }
-    `;
-    document.head.appendChild(style);
-</script>
+
+        // Initialize profile picture functionality
+        handleProfileUpload('kanyie');
+        handleProfileUpload('stacie');
+        loadProfilePictures();
+
+        // Add this CSS for highlighting the current player
+        const style = document.createElement('style');
+        style.textContent = `
+            .current-player {
+                box-shadow: 0 0 10px 5px gold;
+            }
+        `;
+        document.head.appendChild(style);
+
+    </script>
+    <!-- Add this just before the closing </body> tag -->
+    <div id="capturePopup" class="popup">
+        <span id="captureMessage"></span>
+    </div>
+    <div id="turnPopup" class="popup">
+        <span id="turnMessage"></span>
+    </div>
+</body>
+</html>
