@@ -737,7 +737,12 @@
                                 <div>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</div>
                                 <div>Released: ${new Date(file.uploadDate).toLocaleDateString()}</div>
                             </div>
+                            <div class="app-actions">
+                                <a href="/download/${file.id}" class="download-btn">Download</a>
+                                
+                            </div>
                         </div>
+                        
                     </div>
                     <div class="app-screenshots">
                         <div class="screenshot-container">
